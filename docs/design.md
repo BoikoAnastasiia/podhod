@@ -86,7 +86,11 @@ D1 / SQLite via Drizzle.
 
 **`exercises`** — language-neutral fields only
 `id` (TEXT PK, `"0001"`) · `body_part` · `equipment` · `target` · `muscle_group` ·
-`secondary_muscles` (JSON) · `media_id` · `image_path` · `gif_path` · `attribution`
+`secondary_muscles` (JSON) · `media_id` · `image_path` · `gif_path`
+
+**`attribution` is not a column.** All 1,324 records carry the identical string
+`"© Gym visual — https://gymvisual.com/"`, so it lives once as a constant in
+`packages/core` rather than 1,324 times in the database.
 
 **`exercise_translations`** — PK `(exercise_id, lang)`
 `name` · `steps` (JSON array)
@@ -369,16 +373,18 @@ strings, so Russian support is a build problem, not a filtering problem.
 
 ```
 pnpm data:fetch    17 MB source → gitignored cache
-pnpm data:build    strip to en+ru → data/exercises.seed.json  (~3 MB, committed)
+pnpm data:build    strip to en+ru → data/exercises.seed.json  (2.1 MB, committed)
 pnpm data:names    Claude API, batched, taxonomy as glossary
                    → data/names.ru.json  (committed, idempotent, reviewable diff)
 pnpm db:seed       Drizzle bulk insert → local and remote D1
 ```
 
-`data/taxonomy.ru.json` — the ~90 body-part, equipment and target terms — is
+`data/taxonomy.ru.json` — **exactly 85 distinct terms** (10 body parts, 28
+equipment, 19 targets, 29 muscle groups, 40 secondary muscles, overlapping) — is
 **hand-curated**, because that vocabulary appears in every filter chip and a
 machine translation of "waist" or "leverage machine" into gym Russian will be wrong
-in a way you notice daily.
+in a way you notice daily. A test asserts every taxonomy value present in the seed
+has a Russian entry, so the dictionary cannot silently fall behind the data.
 
 Translations are committed artifacts reviewable as plain diffs, never runtime API
 calls.

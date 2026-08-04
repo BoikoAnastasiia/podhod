@@ -1875,8 +1875,13 @@ export function ExerciseCard({
         width={180}
         height={180}
         loading="lazy"
-        className="exercise-thumb size-full rounded-row bg-canvas object-contain"
+        className="exercise-thumb size-media rounded-row bg-canvas object-contain"
         data-exercise-id={exercise.id}
+        /* Flip pairs elements across getState/from by data-flip-id. Without a
+           matching id on both the thumbnail and the detail image, GSAP assigns
+           each a different auto-id, finds no counterpart, and collapses the
+           tween to a duration-0 no-op — the morph silently becomes a jump. */
+        data-flip-id={exercise.id}
       />
       <span className="text-sm font-semibold leading-tight">{exercise.name}</span>
       <span className="text-xs text-muted">

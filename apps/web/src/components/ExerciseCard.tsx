@@ -14,7 +14,7 @@ export function ExerciseCard({
       to="/library/$id"
       params={{ id: exercise.id }}
       data-testid="exercise-card"
-      className="flex min-h-row-min flex-col gap-2 rounded-card bg-surface p-3"
+      className="flex min-h-row-min flex-col items-center gap-2 rounded-card bg-surface p-3"
     >
       {/* Media is capped at 180x180 by licence; the frame is fixed to match. */}
       <img
@@ -23,7 +23,7 @@ export function ExerciseCard({
         width={180}
         height={180}
         loading="lazy"
-        className="exercise-thumb size-full rounded-row bg-canvas object-contain"
+        className="exercise-thumb size-media rounded-row bg-canvas object-contain"
         data-exercise-id={exercise.id}
       />
       <span className="text-sm font-semibold leading-tight">{exercise.name}</span>

@@ -28,3 +28,18 @@ test("filter chips meet the minimum tap target height", async ({ page }) => {
   const box = await chip.boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
 });
+
+test("thumbnail media stays within the 180px licence cap on a wide viewport", async ({
+  page,
+}) => {
+  // A regression guard: `width`/`height` HTML attributes alone don't bound
+  // the rendered box — a computed style (an unbounded grid track feeding an
+  // unbounded `size-full` image) can still win. Measuring the real
+  // getBoundingClientRect() is the only way this stays caught.
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/library");
+  const thumb = page.locator(".exercise-thumb").first();
+  const box = await thumb.boundingBox();
+  expect(box!.width).toBeLessThanOrEqual(180);
+  expect(box!.height).toBeLessThanOrEqual(180);
+});

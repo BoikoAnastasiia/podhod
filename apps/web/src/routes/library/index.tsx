@@ -43,7 +43,7 @@ function Library() {
       {isPending ? (
         <p className="text-muted">Loading…</p>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="grid grid-exercises gap-3">
           {data?.items.map((exercise) => (
             <li key={exercise.id}>
               <ExerciseCard exercise={exercise} label={term} />

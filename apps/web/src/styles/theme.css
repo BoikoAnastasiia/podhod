@@ -15,6 +15,25 @@
   --spacing-tap-min: 44px;
   /* The media licence caps images and GIFs at 180x180; the frame matches. */
   --spacing-media: 180px;
+  /*
+   * Minimum exercise-card width for the library grid: the 180px media frame
+   * plus the card's own horizontal padding (p-3, 12px a side). Without the
+   * padding folded in, an auto-fill track pinned to --spacing-media alone
+   * squeezes the thumbnail a few px under its licensed size once the card's
+   * own padding is subtracted from it.
+   */
+  --spacing-card-min: 204px;
+}
+
+/*
+ * A fixed-count grid (grid-cols-N) stretches its columns to fill whatever
+ * width the viewport has, which is how a 180px-licensed thumbnail ended up
+ * rendered at 439px on a wide screen. This keeps tracks near the media
+ * width instead, so a wider viewport buys more columns rather than wider
+ * ones — the right trade when scanning 1,324 exercises.
+ */
+@utility grid-exercises {
+  grid-template-columns: repeat(auto-fill, minmax(var(--spacing-card-min), 1fr));
 }
 
 /*

@@ -1,0 +1,30 @@
+import { expect, test } from "@playwright/test";
+
+test("browses, searches and filters the library", async ({ page }) => {
+  await page.goto("/library");
+  await expect(page.getByTestId("exercise-card").first()).toBeVisible();
+
+  // "bench press" alone matches 30+ variants in the real 1,324-exercise
+  // library (barbell/dumbbell/cable/decline/incline/...), so it doesn't
+  // narrow to one card the way the brief's literal search term assumes.
+  // "reverse grip bench press" is verified unique in the seeded data and
+  // still contains "bench press" for the text assertion below.
+  await page.getByPlaceholder(/search/i).fill("reverse grip bench press");
+  await expect(page.getByTestId("exercise-card")).toHaveCount(1, { timeout: 5000 });
+  await expect(page.getByTestId("exercise-card").first()).toContainText(
+    /bench press/i,
+  );
+
+  await page.getByPlaceholder(/search/i).clear();
+  await page.getByRole("button", { name: "chest" }).click();
+  const cards = page.getByTestId("exercise-card");
+  await expect(cards.first()).toBeVisible();
+  await expect(cards.first()).toContainText(/chest/i);
+});
+
+test("filter chips meet the minimum tap target height", async ({ page }) => {
+  await page.goto("/library");
+  const chip = page.getByRole("button", { name: "chest" });
+  const box = await chip.boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+});

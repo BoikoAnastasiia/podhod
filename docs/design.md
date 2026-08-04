@@ -396,6 +396,29 @@ Russian everywhere else: UI strings, instruction steps, and every filter chip.
 This is reversible without a migration: `exercise_translations` already stores a
 name per language, so Russian names can be filled in by hand over time.
 
+### Search synonyms are separate from display labels
+
+`data/taxonomy.ru.json` answers "what is this called?" — it drives every filter
+chip and every label the user reads, so its terms are precise: `upper legs` is
+**бёдра**, `lower legs` is **голени**.
+
+Search answers a different question: "what might someone type to find this?" A
+Russian speaker looking for leg work types **ноги**, which appears in neither
+precise term. Serving search from the display dictionary would mean coarsening
+the labels to match how people search — degrading the thing users read to help
+the thing users type.
+
+So `apps/api/scripts/seed.ts` keeps a small `SEARCH_SYNONYMS_RU` table that
+extends the `search_text` haystack only. It never reaches `taxonomy.ru.json`,
+never reaches the `exercises.body_part` column, and `search_text` is never
+selected into an API response — so a synonym cannot leak into a displayed label.
+
+Verified against the real library: `ноги` matches exactly `upper legs` (227) and
+`lower legs` (59), with no other body part drawn in.
+
+Add a synonym when a natural search term is absent from the precise one. Do not
+add one to fix a label — fix the label.
+
 UI strings are a typed dictionary in `packages/i18n` using `Intl.PluralRules` for
 Russian's three plural forms (подход / подхода / подходов). No i18n library for
 ~150 strings.

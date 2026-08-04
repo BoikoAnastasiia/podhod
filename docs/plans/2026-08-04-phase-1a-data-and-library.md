@@ -935,17 +935,23 @@ export function toSql(rows: ReturnType<typeof buildRows>): string {
   const q = (v: string) => `'${v.replace(/'/g, "''")}'`;
   const lines = ["DELETE FROM exercise_translations;", "DELETE FROM exercises;"];
 
+  // Column lists are explicit on purpose. A positional INSERT would silently
+  // bind the wrong values if a future migration reorders or inserts a column,
+  // and SQLite would accept it as long as the arity matched.
   for (const e of rows.exercises) {
     lines.push(
-      `INSERT INTO exercises VALUES (${q(e.id)},${q(e.bodyPart)},${q(e.equipment)},` +
-        `${q(e.target)},${q(e.muscleGroup)},${q(JSON.stringify(e.secondaryMuscles))},` +
+      "INSERT INTO exercises (id, body_part, equipment, target, muscle_group, " +
+        "secondary_muscles, media_id, image_path, gif_path) VALUES (" +
+        `${q(e.id)},${q(e.bodyPart)},${q(e.equipment)},${q(e.target)},` +
+        `${q(e.muscleGroup)},${q(JSON.stringify(e.secondaryMuscles))},` +
         `${q(e.mediaId)},${q(e.imagePath)},${q(e.gifPath)});`,
     );
   }
   for (const t of rows.translations) {
     lines.push(
-      `INSERT INTO exercise_translations VALUES (${q(t.exerciseId)},${q(t.lang)},` +
-        `${q(t.name)},${q(JSON.stringify(t.steps))},${q(t.searchText)});`,
+      "INSERT INTO exercise_translations (exercise_id, lang, name, steps, " +
+        `search_text) VALUES (${q(t.exerciseId)},${q(t.lang)},${q(t.name)},` +
+        `${q(JSON.stringify(t.steps))},${q(t.searchText)});`,
     );
   }
   return lines.join("\n");

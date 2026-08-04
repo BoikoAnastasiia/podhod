@@ -14,7 +14,7 @@ app.route("/api/exercises", exerciseRoutes);
  * route and belongs to the SPA. API misses stay JSON.
  */
 app.notFound((c) => {
-  if (c.req.path.startsWith("/api/")) {
+  if (c.req.path === "/api" || c.req.path.startsWith("/api/")) {
     return c.json(
       { error: { code: "not_found", message: "no such route" } } satisfies ErrorResponse,
       404,

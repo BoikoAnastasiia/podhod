@@ -11,6 +11,7 @@
     "seed:remote": "pnpm seed:emit && wrangler d1 execute podhod-db --remote --file=seed.sql",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "pretest": "pnpm --filter @podhod/web run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

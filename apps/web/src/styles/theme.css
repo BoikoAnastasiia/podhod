@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #f5f5f3;
+  --color-surface: #ffffff;
+  --color-ink: #111111;
+  --color-muted: #8a8a85;
+  --color-accent: #d4f14a;
+  --color-ink-on-accent: #111111;
+
+  --radius-card: 24px;
+  --radius-row: 16px;
+
+  --spacing-row-min: 56px;
+  --spacing-tap-min: 44px;
+  /* The media licence caps images and GIFs at 180x180; the frame matches. */
+  --spacing-media: 180px;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-canvas: #0e0e0e;
+    --color-surface: #1a1a1a;
+    --color-ink: #f2f2f0;
+  }
+}
+
+/* Set numerals globally: set rows must not shift as weights change. */
+html {
+  font-variant-numeric: tabular-nums;
+}

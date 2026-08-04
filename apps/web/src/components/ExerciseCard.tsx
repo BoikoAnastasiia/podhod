@@ -1,6 +1,7 @@
 import { mediaUrl } from "@podhod/core";
 import type { ExerciseListItem } from "@podhod/schema";
 import { Link } from "@tanstack/react-router";
+import { captureThumb } from "../lib/flipStore.js";
 
 export function ExerciseCard({
   exercise,
@@ -14,6 +15,7 @@ export function ExerciseCard({
       to="/library/$id"
       params={{ id: exercise.id }}
       data-testid="exercise-card"
+      onClick={() => captureThumb(exercise.id)}
       className="flex min-h-row-min flex-col items-center gap-2 rounded-card bg-surface p-3"
     >
       {/* Media is capped at 180x180 by licence; the frame is fixed to match. */}
@@ -25,6 +27,7 @@ export function ExerciseCard({
         loading="lazy"
         className="exercise-thumb size-media rounded-row bg-canvas object-contain"
         data-exercise-id={exercise.id}
+        data-flip-id={exercise.id}
       />
       <span className="text-sm font-semibold leading-tight">{exercise.name}</span>
       <span className="text-xs text-muted">

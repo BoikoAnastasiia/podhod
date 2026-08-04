@@ -1,0 +1,17 @@
+{
+  "name": "podhod",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "data:fetch": "pnpm --filter @podhod/data run fetch",
+    "data:build": "pnpm --filter @podhod/data build",
+    "data:names": "pnpm --filter @podhod/data names"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

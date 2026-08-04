@@ -1,0 +1,13 @@
+{
+  "name": "@podhod/data",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch": "tsx src/fetch.ts",
+    "build": "tsx src/build.ts",
+    "names": "tsx src/translate-names.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": { "tsx": "^4.19.0", "@types/node": "^22.10.0" }
+}

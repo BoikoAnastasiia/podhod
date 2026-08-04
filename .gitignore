@@ -11,6 +11,9 @@ dist/
 # The stripped seed artifacts under data/ are committed on purpose.
 data/.cache/
 
+# Regenerated from the committed data artifacts by `pnpm seed:emit`.
+apps/api/seed.sql
+
 coverage/
 playwright-report/
 test-results/

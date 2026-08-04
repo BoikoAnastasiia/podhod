@@ -8,12 +8,20 @@ const app = new Hono<Env>();
 
 app.route("/api/exercises", exerciseRoutes);
 
-app.notFound((c) =>
-  c.json(
-    { error: { code: "not_found", message: "no such route" } } satisfies ErrorResponse,
-    404,
-  ),
-);
+/**
+ * `run_worker_first: ["/api/*"]` means only API paths reach the Worker before
+ * the asset layer, so anything arriving here that is not /api/* is a client
+ * route and belongs to the SPA. API misses stay JSON.
+ */
+app.notFound((c) => {
+  if (c.req.path.startsWith("/api/")) {
+    return c.json(
+      { error: { code: "not_found", message: "no such route" } } satisfies ErrorResponse,
+      404,
+    );
+  }
+  return c.env.ASSETS.fetch(c.req.raw);
+});
 
 app.onError((err, c) => {
   console.error(err);

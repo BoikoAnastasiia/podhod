@@ -1011,7 +1011,12 @@ Run: `pnpm --filter @podhod/api exec wrangler d1 execute podhod-db --local --com
 Expected: `c: 1324`.
 
 Run: `pnpm --filter @podhod/api exec wrangler d1 execute podhod-db --local --command "SELECT name FROM exercise_translations WHERE exercise_id='0025' AND lang='ru'"`
-Expected: a Cyrillic bench-press name.
+Expected: the **English** name (`barbell bench press`) — names are not translated.
+
+Then confirm Russian search actually works:
+
+Run: `pnpm --filter @podhod/api exec wrangler d1 execute podhod-db --local --command "SELECT search_text FROM exercise_translations WHERE exercise_id='0025' AND lang='ru'"`
+Expected: the English name followed by Cyrillic taxonomy terms, e.g. `barbell bench press грудные штанга`.
 
 - [ ] **Step 7: Commit**
 

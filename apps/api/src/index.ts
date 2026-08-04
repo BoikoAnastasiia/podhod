@@ -1,9 +1,19 @@
-/**
- * Placeholder Worker entry point. `wrangler.jsonc` names this file as `main`,
- * and the Vitest pool refuses to start without it. The API routes land here in
- * a later task; until then every request that reaches the Worker (only
- * `/api/*`, per `run_worker_first`) is a route that does not exist yet.
- */
-export default {
-  fetch: () => new Response("Not Found", { status: 404 }),
-} satisfies ExportedHandler<Env>;
+import { Hono } from "hono";
+import { exerciseRoutes } from "./routes/exercises.js";
+
+type Env = { Bindings: { DB: D1Database; ASSETS: Fetcher } };
+
+const app = new Hono<Env>();
+
+app.route("/api/exercises", exerciseRoutes);
+
+app.notFound((c) =>
+  c.json({ error: { code: "not_found", message: "no such route" } }, 404),
+);
+
+app.onError((err, c) => {
+  console.error(err);
+  return c.json({ error: { code: "internal", message: "unexpected error" } }, 500);
+});
+
+export default app;

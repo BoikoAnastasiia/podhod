@@ -23,6 +23,8 @@
 - Media attribution string is the constant `ATTRIBUTION = "© Gym visual — https://gymvisual.com/"`, exported from `packages/core`. It renders on every exercise detail view. Media is served at 180×180 only.
 - Weight/measurement values: none in this phase.
 - Commit messages: no AI attribution, no `Co-Authored-By` trailer.
+- **The project has no AI or LLM dependency** — not at runtime, not at build time, and nothing in any `package.json`. Exercise names ship in English (see the Task 3 CUT record).
+- Root `package.json` scripts must invoke workspace scripts as `pnpm --filter <pkg> run <script>`. Without `run`, a script whose name collides with a pnpm builtin (`fetch`, `install`, `link`, `pack`, `publish`, `rebuild`, `remove`, `test`…) silently no-ops: exit 0, no output, no error.
 - Node 22+, pnpm 9+.
 
 ---
@@ -38,17 +40,13 @@ podhod/
 ├── data/
 │   ├── .cache/                     gitignored raw download
 │   ├── exercises.seed.json         committed artifact (2.1 MB)
-│   ├── names.ru.json               committed artifact (generated, reviewed)
 │   ├── taxonomy.ru.json            committed, hand-curated, 85 terms
 │   ├── src/
 │   │   ├── transform.ts            PURE: raw record → seed record
 │   │   ├── fetch.ts                I/O: download → .cache
-│   │   ├── build.ts                I/O: .cache → exercises.seed.json
-│   │   ├── batching.ts             PURE: chunking + merge for translation
-│   │   └── translate-names.ts      I/O: Claude API → names.ru.json
+│   │   │   └── build.ts            I/O: .cache → exercises.seed.json
 │   └── test/
 │       ├── transform.test.ts
-│       ├── batching.test.ts
 │       └── taxonomy.test.ts
 ├── packages/
 │   ├── core/src/index.ts           ATTRIBUTION, mediaUrl()
@@ -114,9 +112,8 @@ packages:
   "scripts": {
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "data:fetch": "pnpm --filter @podhod/data fetch",
-    "data:build": "pnpm --filter @podhod/data build",
-    "data:names": "pnpm --filter @podhod/data names"
+    "data:fetch": "pnpm --filter @podhod/data run fetch",
+    "data:build": "pnpm --filter @podhod/data run build"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
@@ -151,7 +148,6 @@ packages:
   "scripts": {
     "fetch": "tsx src/fetch.ts",
     "build": "tsx src/build.ts",
-    "names": "tsx src/translate-names.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -492,222 +488,33 @@ directions, so neither can drift silently."
 
 ---
 
-### Task 3: Exercise name translation
+### Task 3: CUT — exercise names ship in English
 
-**Files:**
-- Create: `data/src/batching.ts`, `data/src/translate-names.ts`, `.env.example`
-- Test: `data/test/batching.test.ts`
+**Status: removed from the plan on 2026-08-04, before implementation.**
 
-**Interfaces:**
-- Consumes: `SeedExercise` from Task 1; `data/taxonomy.ru.json` from Task 2.
-- Produces: `data/names.ru.json` — a `Record<string, string>` keyed by exercise `id` (`"0001"`), valued with the Russian name. Task 5 reads it during seeding.
-- Also produces: `chunk<T>(items: T[], size: number): T[][]` and `mergeNames(existing, incoming): Record<string,string>`.
+This task originally generated `data/names.ru.json` by calling the Claude API over
+the 1,324 English exercise names. It is cut. The project has **no AI or LLM
+dependency of any kind** — not at runtime, not at build time, and nothing in
+`package.json`.
 
-- [ ] **Step 1: Write the failing test for the pure helpers**
+**What ships instead:** Russian UI strings, Russian instruction steps (which the
+upstream dataset already provides), and Russian taxonomy on every filter chip.
+**Exercise names stay in English in both locales.** This is defensible on its own
+terms — Russian lifters routinely use English and transliterated names — and it is
+not a dead end: `exercise_translations` already stores a name per language, so
+Russian names can be filled in by hand later, incrementally, with no migration and
+no schema change.
 
-`data/test/batching.test.ts`:
-```ts
-import { describe, expect, it } from "vitest";
-import { chunk, mergeNames, pendingNames } from "../src/batching.js";
+**Why not compose them mechanically:** the 1,324 names use only 537 distinct words,
+307 of which recur, so word-substitution looks tempting. It does not work.
+"dumbbell biceps curl" is *подъём гантелей на бицепс* — genitive plural, reordered,
+with a preposition absent from the English. Word-level substitution yields
+*гантель бицепс сгибание*, which is not Russian. Correct composition needs
+grammatical templates with case and agreement, which is a larger project than the
+translation it would replace.
 
-describe("chunk", () => {
-  it("splits into full batches plus a remainder", () => {
-    expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
-  });
-  it("returns nothing for an empty list", () => {
-    expect(chunk([], 10)).toEqual([]);
-  });
-  it("returns one batch when size exceeds length", () => {
-    expect(chunk([1, 2], 50)).toEqual([[1, 2]]);
-  });
-});
-
-describe("pendingNames", () => {
-  it("returns only exercises with no existing translation", () => {
-    const all = [
-      { id: "0001", name: "a" },
-      { id: "0002", name: "b" },
-    ];
-    expect(pendingNames(all, { "0001": "А" })).toEqual([{ id: "0002", name: "b" }]);
-  });
-  it("returns nothing when everything is translated", () => {
-    const all = [{ id: "0001", name: "a" }];
-    expect(pendingNames(all, { "0001": "А" })).toEqual([]);
-  });
-});
-
-describe("mergeNames", () => {
-  it("adds new entries without disturbing existing ones", () => {
-    expect(mergeNames({ "0001": "А" }, { "0002": "Б" })).toEqual({
-      "0001": "А",
-      "0002": "Б",
-    });
-  });
-  it("lets incoming entries overwrite existing ones", () => {
-    expect(mergeNames({ "0001": "старое" }, { "0001": "новое" })).toEqual({
-      "0001": "новое",
-    });
-  });
-  it("returns keys in sorted order so the committed diff is stable", () => {
-    expect(Object.keys(mergeNames({ "0003": "в" }, { "0001": "а", "0002": "б" })))
-      .toEqual(["0001", "0002", "0003"]);
-  });
-});
-```
-
-- [ ] **Step 2: Run the test and confirm it fails**
-
-Run: `pnpm --filter @podhod/data test batching`
-Expected: FAIL — cannot resolve `../src/batching.js`.
-
-- [ ] **Step 3: Implement the pure helpers**
-
-`data/src/batching.ts`:
-```ts
-export type NameInput = { id: string; name: string };
-export type NameMap = Record<string, string>;
-
-export function chunk<T>(items: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-  return out;
-}
-
-/** Idempotency: only exercises without a translation are sent to the API. */
-export function pendingNames(all: NameInput[], existing: NameMap): NameInput[] {
-  return all.filter((e) => !existing[e.id]);
-}
-
-/** Sorted keys keep the committed artifact's diff readable across runs. */
-export function mergeNames(existing: NameMap, incoming: NameMap): NameMap {
-  const merged = { ...existing, ...incoming };
-  return Object.fromEntries(Object.keys(merged).sort().map((k) => [k, merged[k]!]));
-}
-```
-
-- [ ] **Step 4: Run the test and confirm it passes**
-
-Run: `pnpm --filter @podhod/data test batching`
-Expected: PASS, 8 tests.
-
-- [ ] **Step 5: Write the translation script**
-
-Install: `pnpm --filter @podhod/data add @anthropic-ai/sdk zod`
-
-`data/src/translate-names.ts`:
-```ts
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { readFile, writeFile } from "node:fs/promises";
-import { z } from "zod";
-import { chunk, mergeNames, pendingNames, type NameMap } from "./batching.js";
-import type { SeedExercise } from "./transform.js";
-
-const BATCH_SIZE = 50;
-
-const Batch = z.object({
-  translations: z.array(z.object({ id: z.string(), ru: z.string() })),
-});
-
-const seed: SeedExercise[] = JSON.parse(
-  await readFile(new URL("../exercises.seed.json", import.meta.url), "utf8"),
-);
-const taxonomy: Record<string, string> = JSON.parse(
-  await readFile(new URL("../taxonomy.ru.json", import.meta.url), "utf8"),
-);
-
-const outUrl = new URL("../names.ru.json", import.meta.url);
-let existing: NameMap = {};
-try {
-  existing = JSON.parse(await readFile(outUrl, "utf8"));
-} catch {
-  // First run — no artifact yet.
-}
-
-const todo = pendingNames(seed.map((e) => ({ id: e.id, name: e.name })), existing);
-console.log(`${todo.length} names to translate (${Object.keys(existing).length} cached)`);
-
-const glossary = Object.entries(taxonomy)
-  .map(([en, ru]) => `${en} = ${ru}`)
-  .join("\n");
-
-const client = new Anthropic();
-let result = existing;
-
-for (const [i, batch] of chunk(todo, BATCH_SIZE).entries()) {
-  const response = await client.messages.parse({
-    model: "claude-opus-5",
-    max_tokens: 16000,
-    system:
-      "You translate strength-training exercise names from English into Russian " +
-      "for a gym app. Use the vocabulary Russian-speaking lifters actually use, " +
-      "not literal dictionary renderings. Keep equipment and muscle terms " +
-      "consistent with the supplied glossary. Return one translation per input id.",
-    messages: [
-      {
-        role: "user",
-        content:
-          `Glossary (English = Russian):\n${glossary}\n\n` +
-          `Translate these exercise names:\n` +
-          batch.map((e) => `${e.id}: ${e.name}`).join("\n"),
-      },
-    ],
-    output_config: { effort: "medium", format: zodOutputFormat(Batch) },
-  });
-
-  const parsed = response.parsed_output;
-  if (!parsed) throw new Error(`batch ${i} returned no parsed output`);
-
-  result = mergeNames(
-    result,
-    Object.fromEntries(parsed.translations.map((t) => [t.id, t.ru])),
-  );
-  await writeFile(outUrl, JSON.stringify(result, null, 2) + "\n");
-  console.log(`batch ${i + 1}: ${Object.keys(result).length}/${seed.length} done`);
-}
-```
-
-`.env.example`:
-```
-# Only needed to regenerate data/names.ru.json; the app never calls the API.
-ANTHROPIC_API_KEY=
-```
-
-- [ ] **Step 6: Generate the translations**
-
-Run: `ANTHROPIC_API_KEY=... pnpm data:names`
-Expected: 27 batches, ending `1324/1324 done`. The script writes after each batch, so an interruption resumes rather than restarting.
-
-- [ ] **Step 7: Spot-check the output**
-
-Run:
-```bash
-node -e "
-const n=require('./data/names.ru.json'), s=require('./data/exercises.seed.json');
-console.log('count', Object.keys(n).length);
-for (const id of ['0001','0025','0043','0652']) {
-  console.log(id, s.find(e=>e.id===id).name, '->', n[id]);
-}
-"
-```
-Expected: `count 1324`, and plausible Russian for each — e.g. `0025 barbell bench press -> жим штанги лёжа`.
-
-Read the diff before committing. This is a reviewed artifact, not a generated one.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add -A
-git commit -m "Add Russian exercise name translations
-
-Exercise names are English-only upstream — only the instructions are
-multilingual — so Russian names are generated once at build time and
-committed as a reviewable artifact rather than translated at runtime.
-
-The script is idempotent and writes after every batch, so it resumes
-rather than restarting. The taxonomy dictionary is passed as a glossary
-to keep equipment and muscle terms consistent with the filter chips."
-```
+**Downstream effect:** Task 5 seeds the Russian row with the English name and
+builds its search text from the Russian taxonomy instead. No other task changes.
 
 ---
 
@@ -957,8 +764,10 @@ applied per suite from the generated SQL."
 - Test: `apps/api/test/seed.test.ts`
 
 **Interfaces:**
-- Consumes: `data/exercises.seed.json` (Task 1), `data/names.ru.json` (Task 3), the schema (Task 4), `applyMigrations` (Task 4).
-- Produces: `buildRows(seed, namesRu)` returning `{ exercises, translations }` — pure, so it is tested without a database.
+- Consumes: `data/exercises.seed.json` (Task 1), `data/taxonomy.ru.json` (Task 2), the schema (Task 4), `applyMigrations` (Task 4).
+- Produces: `buildRows(seed, taxonomyRu)` returning `{ exercises, translations }` — pure, so it is tested without a database.
+
+**Changed by the Task 3 cut:** there is no `names.ru.json`. The Russian translation row carries the **English name** and builds its search text from the **Russian taxonomy**, so a Russian speaker can find an exercise by typing "грудь" or "штанга" even though the name itself is English.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -984,29 +793,52 @@ const SEED = [
   },
 ];
 
+const TAXONOMY = { abs: "пресс", "body weight": "собственный вес" };
+
 describe("buildRows", () => {
   it("produces one exercise row per input", () => {
-    const { exercises } = buildRows(SEED, { "0001": "Скручивания 3/4" });
+    const { exercises } = buildRows(SEED, TAXONOMY);
     expect(exercises).toHaveLength(1);
     expect(exercises[0]!.id).toBe("0001");
     expect(exercises[0]!.imagePath).toBe("images/0001-2gPfomN.jpg");
   });
 
   it("produces an en and a ru translation row per input", () => {
-    const { translations } = buildRows(SEED, { "0001": "Скручивания 3/4" });
+    const { translations } = buildRows(SEED, TAXONOMY);
     expect(translations).toHaveLength(2);
+    expect(translations.find((t) => t.lang === "en")!.steps).toEqual(["Lie down."]);
+    expect(translations.find((t) => t.lang === "ru")!.steps).toEqual([
+      "Лягте на спину.",
+    ]);
+  });
+
+  it("carries the English name into both locales", () => {
+    const { translations } = buildRows(SEED, TAXONOMY);
     expect(translations.find((t) => t.lang === "en")!.name).toBe("3/4 sit-up");
-    expect(translations.find((t) => t.lang === "ru")!.name).toBe("Скручивания 3/4");
+    expect(translations.find((t) => t.lang === "ru")!.name).toBe("3/4 sit-up");
   });
 
-  it("builds lowercased search text from name, target and equipment", () => {
-    const { translations } = buildRows(SEED, { "0001": "Скручивания 3/4" });
-    const en = translations.find((t) => t.lang === "en")!;
-    expect(en.searchText).toBe("3/4 sit-up abs body weight");
+  it("builds English search text from name, target and equipment", () => {
+    const { translations } = buildRows(SEED, TAXONOMY);
+    expect(translations.find((t) => t.lang === "en")!.searchText).toBe(
+      "3/4 sit-up abs body weight",
+    );
   });
 
-  it("throws when a Russian name is missing rather than seeding a blank", () => {
-    expect(() => buildRows(SEED, {})).toThrow(/0001/);
+  it("builds Russian search text from the translated taxonomy", () => {
+    const { translations } = buildRows(SEED, TAXONOMY);
+    // A Russian speaker can find this by typing "пресс" even though the
+    // exercise name itself is English.
+    expect(translations.find((t) => t.lang === "ru")!.searchText).toBe(
+      "3/4 sit-up пресс собственный вес",
+    );
+  });
+
+  it("falls back to the English term when the taxonomy lacks an entry", () => {
+    const { translations } = buildRows(SEED, {});
+    expect(translations.find((t) => t.lang === "ru")!.searchText).toBe(
+      "3/4 sit-up abs body weight",
+    );
   });
 });
 ```
@@ -1047,15 +879,13 @@ const searchText = (name: string, target: string, equipment: string) =>
 
 export function buildRows(
   seed: SeedExercise[],
-  namesRu: Record<string, string>,
+  taxonomyRu: Record<string, string>,
 ): { exercises: ExerciseRow[]; translations: TranslationRow[] } {
   const exercises: ExerciseRow[] = [];
   const translations: TranslationRow[] = [];
+  const ru = (term: string) => taxonomyRu[term] ?? term;
 
   for (const e of seed) {
-    const ru = namesRu[e.id];
-    if (!ru) throw new Error(`missing Russian name for exercise ${e.id}`);
-
     exercises.push({
       id: e.id,
       bodyPart: e.body_part,
@@ -1075,12 +905,15 @@ export function buildRows(
       steps: e.steps_en,
       searchText: searchText(e.name, e.target, e.equipment),
     });
+    // The name stays English in both locales — see the Task 3 CUT record.
+    // Russian search still works because the haystack carries translated
+    // taxonomy terms alongside the English name.
     translations.push({
       exerciseId: e.id,
       lang: "ru",
-      name: ru,
+      name: e.name,
       steps: e.steps_ru,
-      searchText: searchText(ru, e.target, e.equipment),
+      searchText: searchText(e.name, ru(e.target), ru(e.equipment)),
     });
   }
 
@@ -1130,7 +963,7 @@ const read = async (p: string) =>
 const sql = toSql(
   buildRows(
     await read("../../../data/exercises.seed.json"),
-    await read("../../../data/names.ru.json"),
+    await read("../../../data/taxonomy.ru.json"),
   ),
 );
 await writeFile(new URL("../seed.sql", import.meta.url), sql);
@@ -1165,8 +998,9 @@ buildRows is pure and tested independently of the database; the emitted
 SQL file is applied through wrangler so local and remote seeding use the
 same path.
 
-Seeding fails loudly on a missing Russian name rather than inserting a
-blank, so an incomplete translation artifact cannot reach the database."
+Exercise names ship in English in both locales; the Russian row carries
+translated taxonomy in its search text, so a Russian speaker can find an
+exercise by muscle or equipment without the name being translated."
 ```
 
 ---
@@ -2719,7 +2553,7 @@ end-to-end browser pass run on every pull request; main deploys on green."
 ## Definition of done
 
 - `pnpm typecheck` and `pnpm test` pass from a clean checkout.
-- `data/exercises.seed.json`, `data/names.ru.json` and `data/taxonomy.ru.json` are committed, and the taxonomy coverage test passes in both directions.
+- `data/exercises.seed.json` and `data/taxonomy.ru.json` are committed, and the taxonomy coverage test passes in both directions.
 - The deployed Worker serves the SPA and `/api/exercises` from one origin.
 - The library is browsable, searchable and filterable in Russian and English at 320px and 1920px.
 - Every exercise detail view shows the Gym visual attribution.

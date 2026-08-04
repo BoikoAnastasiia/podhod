@@ -374,8 +374,6 @@ strings, so Russian support is a build problem, not a filtering problem.
 ```
 pnpm data:fetch    17 MB source → gitignored cache
 pnpm data:build    strip to en+ru → data/exercises.seed.json  (2.1 MB, committed)
-pnpm data:names    Claude API, batched, taxonomy as glossary
-                   → data/names.ru.json  (committed, idempotent, reviewable diff)
 pnpm db:seed       Drizzle bulk insert → local and remote D1
 ```
 
@@ -386,8 +384,17 @@ machine translation of "waist" or "leverage machine" into gym Russian will be wr
 in a way you notice daily. A test asserts every taxonomy value present in the seed
 has a Russian entry, so the dictionary cannot silently fall behind the data.
 
-Translations are committed artifacts reviewable as plain diffs, never runtime API
-calls.
+**Exercise names ship in English in both locales.** Only `instructions` and
+`instruction_steps` are multilingual upstream; names and the whole taxonomy are
+English-only strings. The taxonomy is small enough to translate by hand (85
+terms), the names are not (1,324). Rather than machine-translate them, the app
+ships English names — which Russian lifters commonly use anyway — and carries
+Russian everywhere else: UI strings, instruction steps, and every filter chip.
+
+**The project has no AI or LLM dependency**, at runtime or at build time.
+
+This is reversible without a migration: `exercise_translations` already stores a
+name per language, so Russian names can be filled in by hand over time.
 
 UI strings are a typed dictionary in `packages/i18n` using `Intl.PluralRules` for
 Russian's three plural forms (подход / подхода / подходов). No i18n library for

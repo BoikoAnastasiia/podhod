@@ -672,32 +672,51 @@ Expected: migration applied to the local D1.
 
 - [ ] **Step 5: Write the test helper and the failing schema test**
 
-`apps/api/test/helpers.ts`:
+`apps/api/vitest.config.ts` — migrations are read from disk here, because the
+Worker has no filesystem, and injected as a binding:
 ```ts
-import migration from "../migrations/0000_init.sql?raw";
-
-/**
- * drizzle-kit separates statements with `--> statement-breakpoint`. D1's exec
- * takes one statement at a time, so we split and run them in order.
- * Rename the import above if drizzle-kit names the file differently.
- */
-export async function applyMigrations(db: D1Database): Promise<void> {
-  const statements = migration
-    .split("--> statement-breakpoint")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  for (const sql of statements) await db.exec(sql.replace(/\n/g, " "));
-}
-```
-
-`apps/api/vitest.config.ts`:
-```ts
-import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-workers";
 import { defineConfig } from "vitest/config";
+
+// Despite the vendor docstring, readD1Migrations is on the package root in
+// 0.20.1 — the ./config subpath does not exist.
+const migrations = await readD1Migrations("./migrations");
 
 export default defineConfig({
   plugins: [cloudflareTest({ wrangler: { configPath: "./wrangler.jsonc" } })],
+  test: { poolOptions: { workers: { miniflare: { bindings: { TEST_MIGRATIONS: migrations } } } } },
 });
+```
+
+`apps/api/test/helpers.ts`:
+```ts
+import { applyD1Migrations, env, type D1Migration } from "cloudflare:test";
+
+/**
+ * Applies every generated migration, in numeric filename order.
+ *
+ * Splitting and applying are left to readD1Migrations/applyD1Migrations:
+ * the former uses wrangler's SQL-aware splitter, the latter runs each
+ * statement through `prepare`. Splitting by hand on `--> statement-breakpoint`
+ * and flattening newlines for `exec` looks equivalent, but silently truncates
+ * any statement containing a `-- comment` — and third-party migrations
+ * (Better Auth, Phase 1b) do contain them.
+ *
+ * `migrations` is overridable only so the fixture suite can drive this with
+ * migrations of its own. Callers pass just the database.
+ */
+export async function applyMigrations(
+  db: D1Database,
+  migrations: D1Migration[] = env.TEST_MIGRATIONS,
+): Promise<void> {
+  if (migrations.length === 0) {
+    throw new Error(
+      "applyMigrations was given no migrations. If apps/api/migrations is empty, " +
+        "run `pnpm --filter @podhod/api run db:generate` first.",
+    );
+  }
+  await applyD1Migrations(db, migrations);
+}
 ```
 
 `apps/api/test/schema.test.ts`:

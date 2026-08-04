@@ -1,7 +1,5 @@
 # Подход Phase 1a — Data & Library Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Ship a deployed, bilingual (RU/EN) exercise encyclopedia — 1,324 exercises, searchable and filterable — on Cloudflare Workers + D1.
 
 **Architecture:** A pnpm monorepo. Build-time scripts turn the upstream 17 MB dataset into committed 2.1 MB seed artifacts; a Drizzle/D1 schema stores them; a Hono API on Workers serves them; a Vite + React 19 SPA renders them from static assets served by the same Worker (same-origin, no CORS).
@@ -492,8 +490,8 @@ directions, so neither can drift silently."
 
 **Status: removed from the plan on 2026-08-04, before implementation.**
 
-This task originally generated `data/names.ru.json` by calling the Claude API over
-the 1,324 English exercise names. It is cut. The project has **no AI or LLM
+This task originally generated `data/names.ru.json` by machine-translating the
+1,324 English exercise names. It is cut. The project has **no AI or LLM
 dependency of any kind** — not at runtime, not at build time, and nothing in
 `package.json`.
 

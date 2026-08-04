@@ -7,8 +7,7 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "data:fetch": "pnpm --filter @podhod/data run fetch",
-    "data:build": "pnpm --filter @podhod/data build",
-    "data:names": "pnpm --filter @podhod/data names"
+    "data:build": "pnpm --filter @podhod/data run build"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

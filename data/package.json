@@ -5,7 +5,6 @@
   "scripts": {
     "fetch": "tsx src/fetch.ts",
     "build": "tsx src/build.ts",
-    "names": "tsx src/translate-names.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/library/")({
 });
 
 function Library() {
-  const { lang, term } = useI18n();
+  const { lang, term, t } = useI18n();
   const [q, setQ] = useState("");
   const [bodyPart, setBodyPart] = useState<string | undefined>();
 
@@ -31,7 +31,7 @@ function Library() {
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search exercises"
+        placeholder={t("library.search")}
         className="min-h-tap-min rounded-full bg-surface px-5 text-ink placeholder:text-muted"
       />
       <FilterChips
@@ -41,7 +41,7 @@ function Library() {
         label={term}
       />
       {isPending ? (
-        <p className="text-muted">Loading…</p>
+        <p className="text-muted">{t("library.loading")}</p>
       ) : (
         <ul className="grid grid-exercises gap-3">
           {data?.items.map((exercise) => (

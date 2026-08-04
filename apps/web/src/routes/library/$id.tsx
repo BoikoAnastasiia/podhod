@@ -15,7 +15,7 @@ export const Route = createFileRoute("/library/$id")({ component: Detail });
 
 function Detail() {
   const { id } = Route.useParams();
-  const { lang, term } = useI18n();
+  const { lang, term, t } = useI18n();
   const root = useRef<HTMLDivElement>(null);
 
   const { data } = useQuery({
@@ -54,17 +54,28 @@ function Detail() {
     { scope: root, dependencies: [data] },
   );
 
-  if (!data) return <p className="text-muted">Loading…</p>;
+  const backLink = (
+    <Link
+      to="/library"
+      data-testid="back-to-library"
+      className="inline-flex min-h-tap-min w-max items-center gap-2 rounded-full bg-surface px-5 text-sm font-medium text-ink"
+    >
+      ← {t("nav.library")}
+    </Link>
+  );
+
+  if (!data) {
+    return (
+      <div className="flex flex-col gap-4">
+        {backLink}
+        <p className="text-muted">{t("library.loading")}</p>
+      </div>
+    );
+  }
 
   return (
     <div ref={root} className="flex flex-col gap-4">
-      <Link
-        to="/library"
-        data-testid="back-to-library"
-        className="inline-flex min-h-tap-min w-max items-center gap-2 rounded-full bg-surface px-5 text-sm font-medium text-ink"
-      >
-        ← Library
-      </Link>
+      {backLink}
 
       <div className="flex max-w-content flex-col gap-4">
         <h1 className="text-2xl font-bold tracking-tight">{data.name}</h1>
@@ -75,7 +86,7 @@ function Detail() {
         <div className="w-max rounded-card bg-surface p-3">
           <img
             src={mediaUrl(data.gifPath)}
-            alt={data.name}
+            alt=""
             width={180}
             height={180}
             data-testid="exercise-gif"

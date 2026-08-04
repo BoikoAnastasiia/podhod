@@ -66,37 +66,39 @@ function Detail() {
         ← Library
       </Link>
 
-      <h1 className="text-2xl font-bold tracking-tight">{data.name}</h1>
-      <p className="text-sm text-muted">
-        {term(data.bodyPart)} · {term(data.equipment)} · {term(data.target)}
-      </p>
+      <div className="flex max-w-content flex-col gap-4">
+        <h1 className="text-2xl font-bold tracking-tight">{data.name}</h1>
+        <p className="text-sm text-muted">
+          {term(data.bodyPart)} · {term(data.equipment)} · {term(data.target)}
+        </p>
 
-      <div className="w-max rounded-card bg-surface p-3">
-        <img
-          src={mediaUrl(data.gifPath)}
-          alt={data.name}
-          width={180}
-          height={180}
-          data-testid="exercise-gif"
-          data-flip-id={data.id}
-          className="size-media rounded-row bg-canvas object-contain"
-        />
+        <div className="w-max rounded-card bg-surface p-3">
+          <img
+            src={mediaUrl(data.gifPath)}
+            alt={data.name}
+            width={180}
+            height={180}
+            data-testid="exercise-gif"
+            data-flip-id={data.id}
+            className="size-media rounded-row bg-canvas object-contain"
+          />
+        </div>
+
+        <ol
+          data-testid="exercise-steps"
+          className="flex list-decimal flex-col gap-2 pl-5"
+        >
+          {data.steps.map((step, i) => (
+            <li key={i} className="text-sm leading-relaxed">
+              {step}
+            </li>
+          ))}
+        </ol>
+
+        <p data-testid="attribution" className="text-xs text-muted">
+          {ATTRIBUTION}
+        </p>
       </div>
-
-      <ol
-        data-testid="exercise-steps"
-        className="flex list-decimal flex-col gap-2 pl-5"
-      >
-        {data.steps.map((step, i) => (
-          <li key={i} className="text-sm leading-relaxed">
-            {step}
-          </li>
-        ))}
-      </ol>
-
-      <p data-testid="attribution" className="text-xs text-muted">
-        {ATTRIBUTION}
-      </p>
     </div>
   );
 }

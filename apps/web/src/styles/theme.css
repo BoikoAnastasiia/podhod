@@ -25,20 +25,30 @@
   --spacing-card-min: 204px;
 
   /*
-   * Bounds the whole page column so content doesn't hug the left edge on a
-   * wide screen. Measured, not guessed: the longest real instruction step
-   * across the seeded exercises (161 characters) renders at ~6.36px/char in
-   * text-sm, so at 42rem the text column (container minus main's px-4 and
-   * the steps list's pl-5) comes out to ~620px — about 97 characters for
-   * that outlier and comfortably under it for the typical (80-120 char)
-   * step, staying inside the ~45-90-character readable-line-length range
-   * for most content without being so narrow that short-sentence steps feel
-   * cramped. It also clears the exact width the exercise grid needs to fit
-   * a third auto-fill column (3 * --spacing-card-min + 2 gaps = 636px,
-   * i.e. a 668px container), so the library grid gains a column here too
-   * rather than being stranded at two.
+   * A reading measure for prose, not a page width — used only as an inner
+   * container around the detail route's heading/taxonomy/steps. Measured,
+   * not guessed: the longest real instruction step across the seeded
+   * exercises (161 characters) renders at ~6.36px/char in text-sm, so at
+   * 42rem the text column (this container minus the steps list's own
+   * pl-5) comes out to ~650px — about 97 characters for that outlier and
+   * comfortably under it for the typical (80-120 char) step, staying
+   * inside the ~45-90-character readable-line-length range for most
+   * content without being so narrow that short-sentence steps feel
+   * cramped.
+   *
+   * This must NOT be applied to the root layout: a reading width and a
+   * browsing width are different things. The library grid is a scanning
+   * surface for 1,324 items and wants columns, not a prose measure — see
+   * --container-page below, which bounds the page instead.
    */
   --container-content: 42rem;
+  /*
+   * The root layout's outer bound. Generous on purpose: it exists only to
+   * stop content stretching absurdly on an ultrawide monitor, not to size
+   * anything for reading. The library grid (auto-fill on --spacing-card-min)
+   * is free to fill this with as many columns as fit.
+   */
+  --container-page: 96rem;
 }
 
 /*

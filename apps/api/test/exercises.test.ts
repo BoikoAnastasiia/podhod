@@ -1,12 +1,7 @@
-import type { ExerciseDetail, ListResponse } from "@podhod/schema";
+import { detailSchema, errorResponseSchema, listResponseSchema } from "@podhod/schema";
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { applyMigrations } from "./helpers.js";
-
-// Response.json() is typed as Promise<unknown> in @cloudflare/workers-types,
-// so callers pin the shape with the generic. This mirrors what a real API
-// consumer would do against the same exported schema types.
-type ErrorBody = { error: { code: string; message: string } };
 
 const insert = async (
   id: string,
@@ -38,54 +33,90 @@ describe("GET /api/exercises", () => {
   it("returns items in English by default", async () => {
     const res = await SELF.fetch("https://x/api/exercises");
     expect(res.status).toBe(200);
-    const body = await res.json<ListResponse>();
+    const body = listResponseSchema.parse(await res.json());
     expect(body.items).toHaveLength(3);
     expect(body.items.map((i) => i.name)).toContain("bench press");
   });
 
   it("returns Russian names when lang=ru", async () => {
     const res = await SELF.fetch("https://x/api/exercises?lang=ru");
-    const body = await res.json<ListResponse>();
+    const body = listResponseSchema.parse(await res.json());
     expect(body.items.map((i) => i.name)).toContain("жим лёжа");
   });
 
   it("filters by body part", async () => {
     const res = await SELF.fetch("https://x/api/exercises?bodyPart=chest");
-    const body = await res.json<ListResponse>();
+    const body = listResponseSchema.parse(await res.json());
     expect(body.items).toHaveLength(2);
   });
 
   it("searches by substring, case-insensitively", async () => {
     const res = await SELF.fetch("https://x/api/exercises?q=BENCH");
-    const body = await res.json<ListResponse>();
+    const body = listResponseSchema.parse(await res.json());
     expect(body.items).toHaveLength(1);
     expect(body.items[0]?.id).toBe("0001");
   });
 
   it("searches Cyrillic when lang=ru", async () => {
     const res = await SELF.fetch("https://x/api/exercises?lang=ru&q=тяга");
-    const body = await res.json<ListResponse>();
+    const body = listResponseSchema.parse(await res.json());
     expect(body.items).toHaveLength(1);
     expect(body.items[0]?.id).toBe("0002");
   });
 
+  it("treats a literal percent in the query as a literal character, not a wildcard", async () => {
+    const res = await SELF.fetch("https://x/api/exercises?q=%25");
+    const body = listResponseSchema.parse(await res.json());
+    expect(body.items).toHaveLength(0);
+  });
+
+  it("treats a literal underscore in the query as a literal character, not a wildcard", async () => {
+    // Unescaped, "pr_ss" would match "press" via the underscore wildcard.
+    const res = await SELF.fetch("https://x/api/exercises?q=pr_ss");
+    const body = listResponseSchema.parse(await res.json());
+    expect(body.items).toHaveLength(0);
+  });
+
   it("paginates with a cursor", async () => {
-    const first = await (
-      await SELF.fetch("https://x/api/exercises?limit=2")
-    ).json<ListResponse>();
+    const first = listResponseSchema.parse(
+      await (await SELF.fetch("https://x/api/exercises?limit=2")).json(),
+    );
     expect(first.items).toHaveLength(2);
     expect(first.nextCursor).toBe("0002");
-    const second = await (
-      await SELF.fetch("https://x/api/exercises?limit=2&cursor=0002")
-    ).json<ListResponse>();
+    const second = listResponseSchema.parse(
+      await (await SELF.fetch("https://x/api/exercises?limit=2&cursor=0002")).json(),
+    );
     expect(second.items).toHaveLength(1);
     expect(second.nextCursor).toBeNull();
+  });
+
+  it("returns no next cursor when the page lands exactly on the total", async () => {
+    const res = await SELF.fetch("https://x/api/exercises?limit=3");
+    const body = listResponseSchema.parse(await res.json());
+    expect(body.items).toHaveLength(3);
+    expect(body.nextCursor).toBeNull();
+  });
+
+  it("returns an empty page for a cursor past the end", async () => {
+    const res = await SELF.fetch("https://x/api/exercises?cursor=0003");
+    const body = listResponseSchema.parse(await res.json());
+    expect(body.items).toHaveLength(0);
+    expect(body.nextCursor).toBeNull();
+  });
+
+  it("treats an empty lang or limit as absent, defaulting instead of failing", async () => {
+    const res = await SELF.fetch("https://x/api/exercises?lang=&limit=");
+    expect(res.status).toBe(200);
+    const body = listResponseSchema.parse(await res.json());
+    expect(body.items).toHaveLength(3);
+    expect(body.items.map((i) => i.name)).toContain("bench press");
   });
 
   it("rejects an invalid lang with 400", async () => {
     const res = await SELF.fetch("https://x/api/exercises?lang=de");
     expect(res.status).toBe(400);
-    expect((await res.json<ErrorBody>()).error.code).toBe("bad_request");
+    const body = errorResponseSchema.parse(await res.json());
+    expect(body.error.code).toBe("bad_request");
   });
 });
 
@@ -93,7 +124,7 @@ describe("GET /api/exercises/:id", () => {
   it("returns the detail record with steps", async () => {
     const res = await SELF.fetch("https://x/api/exercises/0001?lang=ru");
     expect(res.status).toBe(200);
-    const body = await res.json<ExerciseDetail>();
+    const body = detailSchema.parse(await res.json());
     expect(body.name).toBe("жим лёжа");
     expect(body.steps).toEqual(["б"]);
     expect(body.gifPath).toBe("g.gif");
@@ -102,6 +133,14 @@ describe("GET /api/exercises/:id", () => {
   it("returns 404 for an unknown id", async () => {
     const res = await SELF.fetch("https://x/api/exercises/9999");
     expect(res.status).toBe(404);
-    expect((await res.json<ErrorBody>()).error.code).toBe("not_found");
+    const body = errorResponseSchema.parse(await res.json());
+    expect(body.error.code).toBe("not_found");
+  });
+
+  it("rejects an invalid lang with 400, same as the list route", async () => {
+    const res = await SELF.fetch("https://x/api/exercises/0001?lang=de");
+    expect(res.status).toBe(400);
+    const body = errorResponseSchema.parse(await res.json());
+    expect(body.error.code).toBe("bad_request");
   });
 });

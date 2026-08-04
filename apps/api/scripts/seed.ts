@@ -20,8 +20,21 @@ export type TranslationRow = {
   searchText: string;
 };
 
-const searchText = (name: string, target: string, equipment: string) =>
-  `${name} ${target} ${equipment}`.toLowerCase();
+const searchText = (name: string, target: string, equipment: string, bodyPart: string) =>
+  `${name} ${target} ${equipment} ${bodyPart}`.toLowerCase();
+
+/**
+ * taxonomy.ru.json gives "upper legs"/"lower legs" precise, correct
+ * translations for display ("бёдра"/"голени" — thighs/shins), but neither
+ * contains "ноги", the generic word a Russian speaker types first when
+ * searching for leg exercises broadly. This adds that word to the search
+ * haystack only — it never touches the taxonomy file, so the label shown
+ * to users (translated client-side through that same file) is unaffected.
+ */
+const SEARCH_SYNONYMS_RU: Record<string, string> = {
+  "upper legs": "ноги",
+  "lower legs": "ноги",
+};
 
 export function buildRows(
   seed: SeedExercise[],
@@ -30,6 +43,8 @@ export function buildRows(
   const exercises: ExerciseRow[] = [];
   const translations: TranslationRow[] = [];
   const ru = (term: string) => taxonomyRu[term] ?? term;
+  const ruBodyPartTerms = (bodyPart: string) =>
+    [ru(bodyPart), SEARCH_SYNONYMS_RU[bodyPart]].filter(Boolean).join(" ");
 
   for (const e of seed) {
     exercises.push({
@@ -49,17 +64,19 @@ export function buildRows(
       lang: "en",
       name: e.name,
       steps: e.steps_en,
-      searchText: searchText(e.name, e.target, e.equipment),
+      searchText: searchText(e.name, e.target, e.equipment, e.body_part),
     });
     // The name stays English in both locales — see the Task 3 CUT record.
     // Russian search still works because the haystack carries translated
-    // taxonomy terms alongside the English name.
+    // taxonomy terms alongside the English name — including the body part,
+    // so a search for "спина" or "грудь" finds it even though nothing in
+    // the name itself is Russian.
     translations.push({
       exerciseId: e.id,
       lang: "ru",
       name: e.name,
       steps: e.steps_ru,
-      searchText: searchText(e.name, ru(e.target), ru(e.equipment)),
+      searchText: searchText(e.name, ru(e.target), ru(e.equipment), ruBodyPartTerms(e.body_part)),
     });
   }
 

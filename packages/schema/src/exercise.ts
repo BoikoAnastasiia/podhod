@@ -3,13 +3,28 @@ import { z } from "zod";
 export const langSchema = z.enum(["en", "ru"]);
 export type Lang = z.infer<typeof langSchema>;
 
+/**
+ * An unset query param (`undefined`) and an explicitly empty one (`?lang=`)
+ * mean the same thing to a caller that builds `URLSearchParams` from a state
+ * object — so both fall through to the same default instead of failing
+ * validation.
+ */
+const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
+
+/**
+ * Parses a raw `lang` query value the same way in every route that accepts
+ * one, so an invalid language is rejected identically everywhere rather than
+ * silently substituted in some handlers and enforced in others.
+ */
+export const langQuerySchema = z.preprocess(emptyToUndefined, langSchema.default("en"));
+
 export const listQuerySchema = z.object({
-  lang: langSchema.default("en"),
+  lang: langQuerySchema,
   q: z.string().trim().max(100).optional(),
   bodyPart: z.string().max(40).optional(),
   equipment: z.string().max(40).optional(),
   target: z.string().max(40).optional(),
-  limit: z.coerce.number().int().min(1).max(60).default(30),
+  limit: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(60).default(30)),
   cursor: z.string().max(8).optional(),
 });
 export type ListQuery = z.input<typeof listQuerySchema>;
@@ -37,3 +52,28 @@ export const detailSchema = listItemSchema.extend({
   steps: z.array(z.string()),
 });
 export type ExerciseDetail = z.infer<typeof detailSchema>;
+
+/**
+ * The one error envelope every route returns. `message` is always a short,
+ * human string — never a raw Zod issue dump, which is multi-line and echoes
+ * the caller's input back at them. Exported so downstream tasks parse a
+ * shared shape instead of hand-rolling their own error type.
+ */
+export const errorResponseSchema = z.object({
+  error: z.object({
+    code: z.enum(["bad_request", "not_found", "internal"]),
+    message: z.string(),
+  }),
+});
+export type ErrorResponse = z.infer<typeof errorResponseSchema>;
+
+/**
+ * Turns a failed parse into the one-line `message` the client actually sees.
+ * Lives here rather than in each route so a route never needs `zod` as a
+ * direct dependency just to name the `ZodError` type — it only ever touches
+ * the `SafeParseError` its own schema produces.
+ */
+export function formatValidationError(error: z.ZodError): string {
+  const field = error.issues[0]?.path.join(".") || "request";
+  return `invalid ${field}`;
+}

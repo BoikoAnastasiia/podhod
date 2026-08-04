@@ -1,25 +1,52 @@
-import { detailSchema, listQuerySchema, type Lang } from "@podhod/schema";
-import { and, asc, eq, gt, like, type SQL } from "drizzle-orm";
+import {
+  detailSchema,
+  errorResponseSchema,
+  formatValidationError,
+  langQuerySchema,
+  listQuerySchema,
+} from "@podhod/schema";
+import type { ErrorResponse } from "@podhod/schema";
+import { and, asc, eq, gt, sql, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { exercises, exerciseTranslations } from "../db/schema.js";
 
 type Env = { Bindings: { DB: D1Database } };
 
+/**
+ * A short, safe message for a failed query-param parse — never the raw Zod
+ * issue dump, which is multi-line and echoes the caller's input back at
+ * them.
+ */
+function badRequestBody(error: Parameters<typeof formatValidationError>[0]): ErrorResponse {
+  return errorResponseSchema.parse({
+    error: { code: "bad_request", message: formatValidationError(error) },
+  });
+}
+
+function notFoundBody(message: string): ErrorResponse {
+  return errorResponseSchema.parse({ error: { code: "not_found", message } });
+}
+
+/** Escapes LIKE wildcards so a literal `%` or `_` in `q` cannot broaden the match. */
+function escapeLike(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
 export const exerciseRoutes = new Hono<Env>()
   .get("/", async (c) => {
     const parsed = listQuerySchema.safeParse(c.req.query());
     if (!parsed.success) {
-      return c.json(
-        { error: { code: "bad_request", message: parsed.error.message } },
-        400,
-      );
+      return c.json(badRequestBody(parsed.error), 400);
     }
     const { lang, q, bodyPart, equipment, target, limit, cursor } = parsed.data;
     const db = drizzle(c.env.DB);
 
     const where: SQL[] = [eq(exerciseTranslations.lang, lang)];
-    if (q) where.push(like(exerciseTranslations.searchText, `%${q.toLowerCase()}%`));
+    if (q) {
+      const pattern = `%${escapeLike(q.toLowerCase())}%`;
+      where.push(sql`${exerciseTranslations.searchText} LIKE ${pattern} ESCAPE '\\'`);
+    }
     if (bodyPart) where.push(eq(exercises.bodyPart, bodyPart));
     if (equipment) where.push(eq(exercises.equipment, equipment));
     if (target) where.push(eq(exercises.target, target));
@@ -49,7 +76,11 @@ export const exerciseRoutes = new Hono<Env>()
     return c.json({ items, nextCursor });
   })
   .get("/:id", async (c) => {
-    const lang = (c.req.query("lang") === "ru" ? "ru" : "en") satisfies Lang;
+    const parsedLang = langQuerySchema.safeParse(c.req.query("lang"));
+    if (!parsedLang.success) {
+      return c.json(badRequestBody(parsedLang.error), 400);
+    }
+    const lang = parsedLang.data;
     const db = drizzle(c.env.DB);
 
     const [row] = await db
@@ -76,10 +107,7 @@ export const exerciseRoutes = new Hono<Env>()
       .limit(1);
 
     if (!row) {
-      return c.json(
-        { error: { code: "not_found", message: "exercise not found" } },
-        404,
-      );
+      return c.json(notFoundBody("exercise not found"), 404);
     }
     return c.json(detailSchema.parse(row));
   });

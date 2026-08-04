@@ -18,7 +18,7 @@ const SEED = [
   },
 ];
 
-const TAXONOMY = { abs: "пресс", "body weight": "собственный вес" };
+const TAXONOMY = { abs: "пресс", "body weight": "собственный вес", waist: "пресс и корпус" };
 
 describe("buildRows", () => {
   it("produces one exercise row per input", () => {
@@ -43,26 +43,40 @@ describe("buildRows", () => {
     expect(translations.find((t) => t.lang === "ru")!.name).toBe("3/4 sit-up");
   });
 
-  it("builds English search text from name, target and equipment", () => {
+  it("builds English search text from name, target, equipment and body part", () => {
     const { translations } = buildRows(SEED, TAXONOMY);
     expect(translations.find((t) => t.lang === "en")!.searchText).toBe(
-      "3/4 sit-up abs body weight",
+      "3/4 sit-up abs body weight waist",
     );
   });
 
-  it("builds Russian search text from the translated taxonomy", () => {
+  it("builds Russian search text from the translated taxonomy, including body part", () => {
     const { translations } = buildRows(SEED, TAXONOMY);
     // A Russian speaker can find this by typing "пресс" even though the
-    // exercise name itself is English.
+    // exercise name itself is English — and now also by typing the body
+    // part, e.g. "пресс и корпус" for "waist".
     expect(translations.find((t) => t.lang === "ru")!.searchText).toBe(
-      "3/4 sit-up пресс собственный вес",
+      "3/4 sit-up пресс собственный вес пресс и корпус",
     );
   });
 
   it("falls back to the English term when the taxonomy lacks an entry", () => {
     const { translations } = buildRows(SEED, {});
     expect(translations.find((t) => t.lang === "ru")!.searchText).toBe(
-      "3/4 sit-up abs body weight",
+      "3/4 sit-up abs body weight waist",
     );
+  });
+
+  it("adds a generic 'ноги' synonym for both leg body parts", () => {
+    // taxonomy.ru.json translates "upper legs"/"lower legs" precisely
+    // ("бёдра"/"голени" — thighs/shins), which is correct for display but
+    // not what a Russian speaker types first when searching for leg
+    // exercises generally. Neither translation contains "ноги" as a
+    // substring, so without a search-only synonym that word finds nothing.
+    for (const bodyPart of ["upper legs", "lower legs"]) {
+      const legSeed = [{ ...SEED[0]!, body_part: bodyPart }];
+      const { translations } = buildRows(legSeed, TAXONOMY);
+      expect(translations.find((t) => t.lang === "ru")!.searchText).toContain("ноги");
+    }
   });
 });

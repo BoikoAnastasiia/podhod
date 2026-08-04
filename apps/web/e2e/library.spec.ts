@@ -40,6 +40,11 @@ test("thumbnail media stays within the 180px licence cap on a wide viewport", as
   await page.goto("/library");
   const thumb = page.locator(".exercise-thumb").first();
   const box = await thumb.boundingBox();
-  expect(box!.width).toBeLessThanOrEqual(180);
-  expect(box!.height).toBeLessThanOrEqual(180);
+  // getBoundingClientRect() returns subpixel float values that can land a
+  // hair over 180 (e.g. 180.00001525878906) despite being exactly 180px in
+  // practice. Round to pixel resolution: the licence cap is a whole-pixel
+  // constraint, and rounding still catches a real regression just as well
+  // as a bare comparison would.
+  expect(Math.round(box!.width)).toBeLessThanOrEqual(180);
+  expect(Math.round(box!.height)).toBeLessThanOrEqual(180);
 });

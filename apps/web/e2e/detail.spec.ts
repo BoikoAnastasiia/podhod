@@ -14,8 +14,14 @@ test("the animation frame is 180px, matching the licence cap", async ({ page }) 
   await page.goto("/library");
   await page.getByTestId("exercise-card").first().click();
   const box = await page.getByTestId("exercise-gif").boundingBox();
-  expect(box!.width).toBeLessThanOrEqual(180);
-  expect(box!.height).toBeLessThanOrEqual(180);
+  // getBoundingClientRect() returns subpixel float values (observed:
+  // 180.00001525878906, a 2^-16-sized rendering artefact) that fail a bare
+  // <= 180 check despite being visually and functionally exactly 180px.
+  // Round to pixel resolution before comparing: the licence cap is a whole
+  // pixel constraint, not a sub-pixel one, and rounding still catches a
+  // real regression (e.g. the historical 439px overflow) just as reliably.
+  expect(Math.round(box!.width)).toBeLessThanOrEqual(180);
+  expect(Math.round(box!.height)).toBeLessThanOrEqual(180);
 });
 
 test("the back affordance returns to the library", async ({ page }) => {

@@ -42,6 +42,7 @@ export function buildRows(
 ): { exercises: ExerciseRow[]; translations: TranslationRow[] } {
   const exercises: ExerciseRow[] = [];
   const translations: TranslationRow[] = [];
+  // Also feeds search_text below (see design.md §7) — editing a label here changes search results, and only takes effect after a re-seed.
   const ru = (term: string) => taxonomyRu[term] ?? term;
   const ruBodyPartTerms = (bodyPart: string) =>
     [ru(bodyPart), SEARCH_SYNONYMS_RU[bodyPart]].filter(Boolean).join(" ");

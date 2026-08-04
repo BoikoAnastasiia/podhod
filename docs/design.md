@@ -62,12 +62,13 @@ entirely and lets Better Auth use plain `HttpOnly; SameSite=Lax` cookies rather
 than a token exchange.
 
 ```
-apps/web        React 19 SPA
+apps/web        React 19 SPA — UI strings and Intl.PluralRules live at
+                apps/web/src/i18n, not a separate package
 apps/api        Hono · Better Auth · Drizzle/D1 · serves web's assets
 packages/core   progression engine — pure TS, zero dependencies, zero I/O
 packages/schema Zod schemas shared by client and server
-packages/i18n   UI strings + RU taxonomy dictionary
-data/           build scripts and committed seed artifacts
+data/           build scripts, committed seed artifacts, and the
+                hand-curated RU taxonomy dictionary
 ```
 
 `packages/core` is a deliberate boundary. The progression rules are pure functions
@@ -156,15 +157,18 @@ recording one you did yourself is not.
 
 ### Media
 
-The database stores `media_id` and relative paths only. URLs are constructed at
-render time from a single environment variable, defaulting to jsDelivr against the
-source repository. The `attribution` string renders on every exercise detail view.
+The database stores `media_id` and relative paths only. URLs are built at render
+time by `mediaUrl(path, base)` in `packages/core`, which defaults `base` to
+jsDelivr against the source repository. No caller currently passes `base` — an
+environment variable wiring it up is Phase 1b work, not yet built. The
+`attribution` string renders on every exercise detail view.
 
 **Licensing:** the dataset's *data* is MIT, but the images and GIFs are © Gym
 visual, redistributed in the source repo under a separate written permission that
 explicitly does not extend to downstream users — "cloning this repo is not a
 licence." Media must stay at 180×180 and carry attribution. If the media is ever
-licensed properly, the environment variable repoints at R2 with no data migration.
+licensed properly, `mediaUrl()`'s `base` parameter repoints it at R2 with no data
+migration.
 
 ---
 
@@ -372,9 +376,10 @@ Only `instructions` and `instruction_steps` are multilingual in the source datas
 strings, so Russian support is a build problem, not a filtering problem.
 
 ```
-pnpm data:fetch    17 MB source → gitignored cache
-pnpm data:build    strip to en+ru → data/exercises.seed.json  (2.1 MB, committed)
-pnpm db:seed       Drizzle bulk insert → local and remote D1
+pnpm data:fetch                                17 MB source → gitignored cache
+pnpm data:build                                strip to en+ru → data/exercises.seed.json  (2.1 MB, committed)
+pnpm --filter @podhod/api run seed:local       emit SQL from committed artifacts, apply via `wrangler d1 execute` (local)
+pnpm --filter @podhod/api run seed:remote      same, against the remote D1
 ```
 
 `data/taxonomy.ru.json` — **exactly 85 distinct terms** (10 body parts, 28
@@ -419,17 +424,33 @@ Verified against the real library: `ноги` matches exactly `upper legs` (227)
 Add a synonym when a natural search term is absent from the precise one. Do not
 add one to fix a label — fix the label.
 
-UI strings are a typed dictionary in `packages/i18n` using `Intl.PluralRules` for
-Russian's three plural forms (подход / подхода / подходов). No i18n library for
-~150 strings.
+UI strings are a typed dictionary at `apps/web/src/i18n` using `Intl.PluralRules`
+for Russian's three plural forms (подход / подхода / подходов). No i18n library
+for ~150 strings.
+
+**The display dictionary also feeds search, in the other direction.**
+`apps/api/scripts/seed.ts` builds each Russian row's `search_text` by looking up
+the exercise's body part, equipment and target in `taxonomyRu` — the same
+`data/taxonomy.ru.json` that drives filter-chip labels — falling back to the
+English term when a lookup misses. That makes the label an *input* to search,
+not only an output of it: shortening or rewording a chip label changes which
+exercises a Russian query matches, and the change only takes effect after
+`pnpm --filter @podhod/api run seed:local` (or `seed:remote`) re-seeds the
+database. Measured against the real library: 320 rows currently match
+`бицепс`; shortening the `upper arms` label drops 141 of them. Edit
+`taxonomy.ru.json` with that in mind, and re-seed before judging the result.
 
 ---
 
 ## 8. Errors, testing, delivery
 
-Zod schemas in `packages/schema` are shared by both sides; Hono validates with
-`zValidator` and returns a typed envelope `{ error: { code, message } }`. Mutations
-are optimistic through TanStack Query with rollback on failure.
+Zod schemas in `packages/schema` are shared by both sides; routes call
+`.safeParse()` on them directly and hand-build the typed envelope
+`{ error: { code, message } }` rather than going through `@hono/zod-validator`'s
+`zValidator` middleware — one fewer dependency, and it keeps the error-formatting
+logic (`formatValidationError`) in the shared package instead of splitting it
+across a middleware config. Mutations are optimistic through TanStack Query with
+rollback on failure.
 
 | Target | Approach |
 |---|---|

@@ -1475,11 +1475,20 @@ export default defineConfig({
   --spacing-media: 180px;
 }
 
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-canvas: #0e0e0e;
-    --color-surface: #1a1a1a;
-    --color-ink: #f2f2f0;
+/*
+ * Dark mode overrides the custom properties at :root — it must NOT nest an
+ * @theme block inside the media query. Tailwind 4 hoists a nested @theme out
+ * of its at-rule and merges it into :root, so the dark values would win
+ * unconditionally and the light theme would never render at all. Utilities
+ * resolve var(--color-canvas) at use time, so overriding the variable suffices.
+ */
+@layer base {
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-canvas: #0e0e0e;
+      --color-surface: #1a1a1a;
+      --color-ink: #f2f2f0;
+    }
   }
 }
 

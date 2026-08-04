@@ -1753,7 +1753,9 @@ Replace the `notFound` handler in `apps/api/src/index.ts`:
  * route and belongs to the SPA. API misses stay JSON.
  */
 app.notFound((c) => {
-  if (c.req.path.startsWith("/api/")) {
+  // Exact `/api` counts too — startsWith("/api/") alone would hand a bare
+  // /api to the asset layer and answer an API miss with the SPA shell.
+  if (c.req.path === "/api" || c.req.path.startsWith("/api/")) {
     return c.json({ error: { code: "not_found", message: "no such route" } }, 404);
   }
   return c.env.ASSETS.fetch(c.req.raw);

@@ -1,7 +1,7 @@
 import { useGSAP } from "@gsap/react";
 import { ATTRIBUTION, mediaUrl } from "@podhod/core";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { useRef } from "react";
@@ -58,6 +58,14 @@ function Detail() {
 
   return (
     <div ref={root} className="flex flex-col gap-4">
+      <Link
+        to="/library"
+        data-testid="back-to-library"
+        className="inline-flex min-h-tap-min w-max items-center gap-2 rounded-full bg-surface px-5 text-sm font-medium text-ink"
+      >
+        ← Library
+      </Link>
+
       <h1 className="text-2xl font-bold tracking-tight">{data.name}</h1>
       <p className="text-sm text-muted">
         {term(data.bodyPart)} · {term(data.equipment)} · {term(data.target)}

@@ -33,7 +33,7 @@ function Shell() {
       <div className="min-h-dvh bg-canvas text-ink">
         <div className="mx-auto w-full max-w-page">
           <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Link
                 to="/"
                 className="flex min-h-tap-min items-center rounded-full px-2 text-xl font-bold tracking-tight"

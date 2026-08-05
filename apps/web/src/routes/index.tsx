@@ -38,13 +38,15 @@ function Landing() {
 
   return (
     <div className="flex flex-col gap-12 py-8">
-      <section className="flex flex-col gap-6">
-        <h1 className="text-4xl font-bold tracking-tight md:text-6xl">Подход</h1>
-        <p className="max-w-content text-lg text-muted">{t("landing.tagline")}</p>
+      <section className="flex flex-col gap-10 py-12 md:gap-14 md:py-20 lg:py-28">
+        <div className="flex flex-col gap-5 md:gap-6">
+          <h1 className="text-5xl font-bold tracking-tight md:text-7xl lg:text-9xl">Подход</h1>
+          <p className="max-w-content text-lg text-muted md:text-xl">{t("landing.tagline")}</p>
+        </div>
         <Link
           to="/library"
           data-testid="landing-cta"
-          className="inline-flex min-h-tap-min w-max items-center rounded-full bg-ink px-6 font-semibold text-surface shadow-card transition-shadow duration-200 ease-out hover:shadow-card-hover motion-safe:hover:-translate-y-1"
+          className="inline-flex min-h-tap-min w-max items-center rounded-full bg-ink px-8 py-4 text-base font-semibold text-surface shadow-card transition-shadow duration-200 ease-out hover:shadow-card-hover motion-safe:hover:-translate-y-1 md:text-lg"
         >
           {t("home.browseLibrary")}
         </Link>

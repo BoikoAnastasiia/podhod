@@ -105,62 +105,82 @@ function Detail() {
       {backLink}
 
       {/*
-       * Two columns from lg up — media/metadata alongside instructions,
-       * rather than one 42rem prose column with the rest of a 1920px
-       * viewport empty. Below lg both sides stack: the media/metadata
-       * column first, then instructions, matching reading order.
+       * Two columns from lg up. Both stretch to equal height
+       * (lg:items-stretch) so the shorter side's card grows to meet the
+       * taller one instead of leaving empty canvas below it. The left
+       * column composes media, taxonomy chips and secondary muscles into
+       * one card (rather than three loose elements) so it carries as much
+       * visual weight as the instructions card opposite it — a lone 180px
+       * thumbnail floating in a wide column read as an afterthought. Below
+       * lg both sides stack: the media/metadata column first, then
+       * instructions, matching reading order.
        */}
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-12">
-        <div className="flex flex-col gap-6 lg:w-80 lg:shrink-0">
-          <div className="flex flex-col gap-3">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{data.name}</h1>
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-12">
+        <div className="flex flex-col gap-4 lg:w-2/5 lg:shrink-0">
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{data.name}</h1>
+
+          <div className="flex flex-1 flex-col gap-6 rounded-card bg-surface p-6 shadow-card lg:p-8">
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-full border border-chip-border bg-surface px-3 py-1 text-xs text-muted">
+              <span className="rounded-full border border-chip-border bg-canvas px-3 py-1 text-xs text-muted">
                 {term(data.bodyPart)}
               </span>
-              <span className="rounded-full border border-chip-border bg-surface px-3 py-1 text-xs text-muted">
+              <span className="rounded-full border border-chip-border bg-canvas px-3 py-1 text-xs text-muted">
                 {term(data.equipment)}
               </span>
-              <span className="rounded-full border border-chip-border bg-surface px-3 py-1 text-xs text-muted">
+              <span className="rounded-full border border-chip-border bg-canvas px-3 py-1 text-xs text-muted">
                 {term(data.target)}
               </span>
             </div>
-          </div>
 
-          <div className="w-max rounded-card bg-surface p-3 shadow-card">
-            <img
-              ref={mediaRef}
-              src={mediaUrl(data.gifPath)}
-              alt=""
-              width={180}
-              height={180}
-              data-testid="exercise-gif"
-              data-flip-id={data.id}
-              className="size-media rounded-row bg-canvas object-contain"
-            />
-          </div>
-
-          {data.secondaryMuscles.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
-                {t("detail.secondaryMuscles")}
-              </h2>
-              <p className="text-sm text-muted">
-                {data.secondaryMuscles.map((muscle) => term(muscle)).join(", ")}
-              </p>
+            {/*
+             * The 180x180 licence cap bounds the <img> itself
+             * (.size-media); this surrounding "stage" is free to grow with
+             * the column's stretched height, so the media stays licence-size
+             * while still filling the card rather than sitting pinned to
+             * its top-left corner.
+             */}
+            <div className="flex flex-1 items-center justify-center rounded-row bg-canvas p-6">
+              <img
+                ref={mediaRef}
+                src={mediaUrl(data.gifPath)}
+                alt=""
+                width={180}
+                height={180}
+                data-testid="exercise-gif"
+                data-flip-id={data.id}
+                className="size-media rounded-row object-contain"
+              />
             </div>
-          )}
+
+            {data.secondaryMuscles.length > 0 && (
+              <div className="flex flex-col gap-2 border-t border-border pt-4">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  {t("detail.secondaryMuscles")}
+                </h2>
+                <p className="text-sm text-muted">
+                  {data.secondaryMuscles.map((muscle) => term(muscle)).join(", ")}
+                </p>
+              </div>
+            )}
+          </div>
 
           <p data-testid="attribution" className="text-xs text-muted">
             {ATTRIBUTION}
           </p>
         </div>
 
-        <div className="flex flex-col gap-4 rounded-card bg-surface p-6 shadow-card lg:max-w-content lg:flex-1">
+        {/*
+         * The card fills the column's full width so it doesn't strand empty
+         * space between itself and the left column at wide viewports; only
+         * the step list inside is capped at max-w-content, keeping the
+         * previous session's readable-measure reasoning for the prose
+         * itself without shrinking the card around it.
+         */}
+        <div className="flex flex-col gap-4 rounded-card bg-surface p-6 shadow-card lg:flex-1 lg:p-8">
           <h2 className="text-lg font-bold tracking-tight">{t("detail.instructions")}</h2>
           <ol
             data-testid="exercise-steps"
-            className="flex list-decimal flex-col gap-2 pl-5"
+            className="flex max-w-content list-decimal flex-col gap-2 pl-5"
           >
             {data.steps.map((step, i) => (
               <li key={i} className="text-sm leading-relaxed">

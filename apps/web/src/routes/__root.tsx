@@ -1,6 +1,7 @@
 import type { Lang } from "@podhod/schema";
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Nav } from "../components/Nav.js";
 import { buildI18n, I18nContext } from "../i18n/useI18n.js";
 
 const STORAGE_KEY = "podhod.lang";
@@ -31,10 +32,16 @@ function Shell() {
     <I18nContext.Provider value={i18n}>
       <div className="min-h-dvh bg-canvas text-ink">
         <div className="mx-auto w-full max-w-page">
-          <header className="flex items-center justify-between gap-4 px-4 py-4">
-            <Link to="/" className="text-xl font-bold tracking-tight">
-              Подход
-            </Link>
+          <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-4">
+            <div className="flex items-center gap-2">
+              <Link
+                to="/"
+                className="flex min-h-tap-min items-center rounded-full px-2 text-xl font-bold tracking-tight"
+              >
+                Подход
+              </Link>
+              <Nav />
+            </div>
             <button
               type="button"
               data-testid="lang-toggle"

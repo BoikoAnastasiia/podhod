@@ -3,6 +3,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-04",
   "compatibility_flags": ["nodejs_compat"],
+  // Declaring routes turns the workers.dev URL off by default, which takes the
+  // app down while a new custom domain waits for its certificate. Keep it on as
+  // a fallback and for debugging; the custom domain is the one to share.
+  "workers_dev": true,
+  // Custom domains, not routes: Cloudflare provisions the DNS record and the
+  // TLS certificate itself.
+  "routes": [
+    { "pattern": "podhod-workout.cc", "custom_domain": true },
+    { "pattern": "www.podhod-workout.cc", "custom_domain": true }
+  ],
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",

@@ -37,6 +37,33 @@
   --color-hero-wash: #dfff75;
 
   /*
+   * The hero wash as a full gradient value, not a Tailwind colour utility.
+   * First pass used bg-linear-to-b from-transparent to-hero-wash — i.e.
+   * transparent at the top fading to *full* #dfff75 at the bottom. That
+   * read as a lime block with a hard edge where it stopped, not a wash,
+   * and it put the strongest colour directly behind the CTA (measured
+   * contrast between the accent button and the wash there: 1.08:1 — the
+   * button had no visible shape left). This version inverts the direction
+   * — strong near the top, behind the wordmark, fading to fully
+   * transparent by 65% of the hero's height, comfortably above where the
+   * CTA sits, so the button always renders against plain --color-canvas,
+   * never a tinted one — and cuts the peak strength to a fraction of the
+   * flat colour via color-mix against transparent rather than an opaque
+   * stop. The 12% figure is overridden for dark inside the hero-wash
+   * utility below rather than here: the same percentage of #dfff75 reads
+   * much stronger against the dark canvas than the light one (a tint
+   * shifts a near-black surface's hue and lightness far more than it
+   * shifts a near-white one), so dark needs a smaller fraction to look
+   * equally subtle. The palette itself doesn't change between themes,
+   * only how much of it shows through.
+   */
+  --gradient-hero-wash: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-hero-wash) 12%, transparent) 0%,
+    transparent 65%
+  );
+
+  /*
    * Revalia is a display face (self-hosted above) — Latin-only, unreadable
    * at body sizes. This token exists solely for the "PODHOD" wordmark (hero
    * heading, nav link); nothing else should reference it. The fallback
@@ -67,6 +94,20 @@
   --shadow-search: 0 1px 2px 0 rgb(23 23 23 / 0.05);
   --shadow-card: 0 1px 2px 0 rgb(23 23 23 / 0.04), 0 1px 1px 0 rgb(23 23 23 / 0.03);
   --shadow-card-hover: 0 8px 16px -4px rgb(23 23 23 / 0.1), 0 2px 6px -2px rgb(23 23 23 / 0.06);
+
+  /*
+   * Not reused from shadow-card/-hover above: those are "very subtle" by
+   * design for cards sitting on a plain surface, but the accent button is
+   * a light, high-luminance fill on an equally light canvas — measured
+   * contrast between #b8ff2c and #f8f9f5 is only ~1.14:1 regardless of
+   * anything behind it (removing the hero gradient from behind the CTA
+   * doesn't fix this; it was never really the gradient's fault, just
+   * worsened by it). The colour itself stays #b8ff2c per the owner's
+   * explicit instruction, so a stronger shadow is what gives the button
+   * edges instead.
+   */
+  --shadow-cta: 0 4px 14px -3px rgb(23 23 23 / 0.22), 0 2px 6px -2px rgb(23 23 23 / 0.14);
+  --shadow-cta-hover: 0 10px 22px -6px rgb(23 23 23 / 0.28), 0 4px 10px -3px rgb(23 23 23 / 0.16);
 
   --spacing-row-min: 56px;
   --spacing-tap-min: 44px;
@@ -133,6 +174,28 @@
  */
 @utility grid-exercises {
   grid-template-columns: repeat(auto-fill, minmax(var(--spacing-card-min), 1fr));
+}
+
+/*
+ * The dark override is nested inside this utility rather than written as a
+ * separate `@layer base { @media { .hero-wash {...} } }` block — the same
+ * fix as .link-inline below. A class introduced via `@utility` always
+ * compiles into Tailwind's utilities layer, and CSS layer order beats
+ * selector specificity and source order outright: a base-layer override
+ * can never win against a utilities-layer rule for the same property, media
+ * query match or not. Nesting keeps both declarations in the same layer so
+ * the media query is what actually decides.
+ */
+@utility hero-wash {
+  background-image: var(--gradient-hero-wash);
+
+  @media (prefers-color-scheme: dark) {
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-hero-wash) 7%, transparent) 0%,
+      transparent 65%
+    );
+  }
 }
 
 /*

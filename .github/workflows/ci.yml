@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      # apps/api has a pretest hook that builds @podhod/web first, which the
+      # API tests need: the Worker's assets binding reads apps/web/dist at
+      # test-collection time.
+      - run: pnpm test
+
+      - run: pnpm --filter @podhod/web exec playwright install --with-deps chromium
+
+      - run: pnpm --filter @podhod/api run db:migrate:local
+      - run: pnpm --filter @podhod/api run seed:local
+
+      # Playwright's own webServer only starts Vite, which proxies /api to
+      # :8787. The Worker has to already be listening there, so start it
+      # here in the background and wait for it to bind instead of guessing
+      # with a fixed sleep. The process stays alive into later steps because
+      # the job's shell tree isn't torn down between steps.
+      - run: pnpm --filter @podhod/api run dev &
+
+      - name: Wait for the Worker to bind
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8787/api/exercises >/dev/null; then
+              echo "Worker is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Worker never came up on :8787" >&2
+          exit 1
+
+      - run: pnpm --filter @podhod/web exec playwright test
+        env:
+          CI: "true"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @podhod/web run build
+
+      - run: pnpm --filter @podhod/api run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

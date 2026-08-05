@@ -52,6 +52,15 @@ test("thumbnail media stays within the 180px licence cap on a wide viewport", as
   // the rendered box — a computed style (an unbounded grid track feeding an
   // unbounded `size-full` image) can still win. Measuring the real
   // getBoundingClientRect() is the only way this stays caught.
+  //
+  // `.exercise-thumb` is the clipped frame around the <img>, not the <img>
+  // itself: the card hover effect scales the image up to 1.03x *inside*
+  // this frame (overflow: hidden) to get a zoom effect without the
+  // rendered box ever exceeding the licence cap. Measuring the <img>
+  // directly would make this test flap on hover (185.4px) or, worse,
+  // invite someone to "fix" the flake by raising the 180 limit — measuring
+  // the frame is what actually reflects the licence-bound box, and it
+  // stays exactly 180px regardless of the image's own transform.
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/library");
   const thumb = page.locator(".exercise-thumb").first();

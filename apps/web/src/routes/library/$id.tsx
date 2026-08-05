@@ -77,11 +77,12 @@ function Detail() {
       <div className="flex flex-col gap-4">
         {backLink}
         <div className="flex flex-col items-start gap-3">
-          <p className="text-muted">{t("library.error")}</p>
+          {/* The one place accent-red belongs today: the error state. */}
+          <p className="text-error">{t("library.error")}</p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="min-h-tap-min rounded-full bg-surface px-5 text-sm font-medium text-ink"
+            className="min-h-tap-min rounded-full border border-error bg-surface px-5 text-sm font-medium text-error"
           >
             {t("library.retry")}
           </button>

@@ -231,27 +231,56 @@ targets without a round trip.
 
 ## 5. Visual system
 
+Revised after the owner's first look at the live app: the original palette read as
+too beige and too flat, so v1 tokens below replace the ones this section
+originally shipped with.
+
 ```
-canvas    #F5F5F3  /  #0E0E0E        surface  #FFFFFF  /  #1A1A1A
-ink       #111111  /  #F2F2F0        muted    #8A8A85
-accent    #D4F14A  (acid lime)
-radius    cards 24 · rows 16 · buttons full pill
+canvas       #F8F9F5  /  #121212      surface      #FFFFFF  /  #1C1C1C
+ink          #171717  /  #F2F2ED      muted        #737373  /  #A3A3A3
+border       #EAEAEA  /  #2A2A2A      chip border  #ECECEC  /  #2E2E2E
+accent       #B8FF2C  (lime)          accent hover #DFFF75
+error        #FF3B30  (accent red)    chip hover   #E6FFC5  /  #26331A
+radius       cards 24 · rows 16 · buttons full pill
 ```
 
-**The accent never appears for decoration.** It marks exactly three things: a
-completed set, a personal record, and a weight the engine raised. Nothing else. A
-glance then tells you what you achieved without reading. This is the single rule
-that makes a three-token palette feel designed rather than sparse.
+Chips get their own border/hover tokens a shade apart from the generic
+border/surface pair, because the owner specified them separately — kept distinct
+rather than folded into the nearest existing token so the two purposes can
+diverge later without one dragging the other along.
 
-**Text on lime is always near-black, never white.** `#D4F14A` is too luminous for
-white text in either theme.
+**Accent red is scoped to the error state only, for now.** The library and detail
+routes' existing "something went wrong" message and retry button are the one place
+a red genuinely belonged before this revision — a personal-record colour is a
+later decision, made when the session player exists to need one.
+
+**The accent rule, relaxed honestly.** The original rule was that the accent never
+appears for decoration — it marked exactly three things: a completed set, a
+personal record, and a weight the engine raised. That rule still holds for those
+three things. But with no session player built yet, the app had no screen where
+the accent could appear "at rest" doing that job, and the owner's live review
+found the result too flat. So the accent now *also* carries hover and focus
+affordance — a chip's hover fill, a chip's selected fill, the search field's
+focus border — which is decoration in the sense that it isn't marking a
+completed set or a PR. Naming this plainly is better than quietly dropping the
+rule: the accent still never appears as static, resting decoration (no lime
+backgrounds sitting idle), only as a response to a hover, a focus, or a
+selection — interaction states, not ambient colour.
+
+**Text on lime is always near-black, never white.** This mattered before at
+`#D4F14A`; it matters more now that the accent is `#B8FF2C`, an even brighter
+lime that would be worse under white text.
 
 **All numerals use `font-variant-numeric: tabular-nums`.** Proportional figures
 make set rows jitter as weights change.
 
-**Tailwind house rule: arbitrary values are banned.** No `bg-[#D4F14A]`, no
+**Tailwind house rule: arbitrary values are banned.** No `bg-[#B8FF2C]`, no
 `p-[13px]`. Every utility resolves to a `@theme` token. This is what prevents the
 system from decaying into forty one-off hex codes, and it is enforced in review.
+(The one exception in practice: transition duration has no `--duration-*`
+`@theme` namespace in Tailwind 4, so motion timing uses the built-in numeric
+`duration-150`/`duration-200` steps directly — a core scale value, not a
+one-off bracketed number.)
 
 ### Constraints the design must absorb
 

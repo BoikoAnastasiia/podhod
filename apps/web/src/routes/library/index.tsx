@@ -41,14 +41,34 @@ function Library() {
 
   return (
     <div className="flex flex-col gap-4">
-      <input
-        type="search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder={t("library.search")}
-        aria-label={t("library.search")}
-        className="min-h-tap-min rounded-full bg-surface px-5 text-ink placeholder:text-muted"
-      />
+      <div className="relative">
+        {/* Decorative — the input carries its own aria-label. */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 20 20"
+          fill="none"
+          className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted"
+        >
+          <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="1.5" />
+          <line
+            x1="13"
+            y1="13"
+            x2="17"
+            y2="17"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t("library.search")}
+          aria-label={t("library.search")}
+          className="min-h-tap-min w-full rounded-full border-2 border-border bg-surface pl-10 pr-5 text-ink shadow-search outline-none transition-colors duration-150 placeholder:text-muted focus:border-accent"
+        />
+      </div>
       <FilterChips
         options={BODY_PARTS}
         selected={bodyPart}
@@ -59,11 +79,12 @@ function Library() {
         <p className="text-muted">{t("library.loading")}</p>
       ) : isError ? (
         <div className="flex flex-col items-start gap-3">
-          <p className="text-muted">{t("library.error")}</p>
+          {/* The one place accent-red belongs today: the error state. */}
+          <p className="text-error">{t("library.error")}</p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="min-h-tap-min rounded-full bg-surface px-5 text-sm font-medium text-ink"
+            className="min-h-tap-min rounded-full border border-error bg-surface px-5 text-sm font-medium text-error"
           >
             {t("library.retry")}
           </button>

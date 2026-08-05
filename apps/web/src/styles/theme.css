@@ -1,15 +1,38 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: #f5f5f3;
+  --color-canvas: #f8f9f5;
   --color-surface: #ffffff;
-  --color-ink: #111111;
-  --color-muted: #8a8a85;
-  --color-accent: #d4f14a;
-  --color-ink-on-accent: #111111;
+  --color-ink: #171717;
+  --color-muted: #737373;
+  --color-border: #eaeaea;
+  --color-accent: #b8ff2c;
+  --color-accent-hover: #dfff75;
+  --color-error: #ff3b30;
+  --color-ink-on-accent: #171717;
+
+  /*
+   * The chips brief specifies a border and hover fill a shade apart from the
+   * generic --color-border/--color-surface pair above (#ECECEC and #E6FFC5,
+   * not #EAEAEA or a mix of accent/surface) — distinct tokens rather than
+   * reusing the nearest existing one, so the two purposes can diverge later
+   * without one accidentally dragging the other along.
+   */
+  --color-chip-border: #ececec;
+  --color-chip-hover: #e6ffc5;
 
   --radius-card: 24px;
   --radius-row: 16px;
+
+  /*
+   * "Very subtle" — the owner's words. Cards get the faintest lift at rest
+   * and a noticeably (but not dramatically) deeper shadow on hover; the
+   * search field gets a constant, barely-there shadow rather than one that
+   * changes with focus, since focus is already signalled by the border.
+   */
+  --shadow-search: 0 1px 2px 0 rgb(23 23 23 / 0.05);
+  --shadow-card: 0 1px 2px 0 rgb(23 23 23 / 0.04), 0 1px 1px 0 rgb(23 23 23 / 0.03);
+  --shadow-card-hover: 0 8px 16px -4px rgb(23 23 23 / 0.1), 0 2px 6px -2px rgb(23 23 23 / 0.06);
 
   --spacing-row-min: 56px;
   --spacing-tap-min: 44px;
@@ -17,12 +40,14 @@
   --spacing-media: 180px;
   /*
    * Minimum exercise-card width for the library grid: the 180px media frame
-   * plus the card's own horizontal padding (p-3, 12px a side). Without the
-   * padding folded in, an auto-fill track pinned to --spacing-media alone
-   * squeezes the thumbnail a few px under its licensed size once the card's
-   * own padding is subtracted from it.
+   * plus the card's own horizontal padding (p-2, 8px a side — tightened from
+   * p-3/12px so the 180px thumbnail reads larger relative to the card, which
+   * is the only way to grow it without exceeding the licensed 180px media
+   * box). Without the padding folded in, an auto-fill track pinned to
+   * --spacing-media alone squeezes the thumbnail a few px under its
+   * licensed size once the card's own padding is subtracted from it.
    */
-  --spacing-card-min: 204px;
+  --spacing-card-min: 196px;
 
   /*
    * A reading measure for prose, not a page width — used only as an inner
@@ -52,6 +77,20 @@
 }
 
 /*
+ * Tailwind v4 only turns @theme variables into utilities for a fixed set of
+ * namespaces (--color-*, --font-*, --spacing-*, --radius-*, --shadow-*,
+ * --ease-*, --animate-*, and a few others) — there is no --duration-*
+ * namespace, so a named token like --duration-card here would sit inert and
+ * never produce a `duration-card` class (verified against the compiled
+ * output, not assumed). Motion timing therefore uses Tailwind's built-in
+ * numeric duration utilities directly — these are core scale steps, not
+ * one-off arbitrary values, so they don't trip the no-bracket-syntax rule:
+ * duration-150 for colour-only transitions (chip state, search-field
+ * focus), duration-200 for the card's transform/shadow hover, both with
+ * ease-out.
+ */
+
+/*
  * A fixed-count grid (grid-cols-N) stretches its columns to fill whatever
  * width the viewport has, which is how a 180px-licensed thumbnail ended up
  * rendered at 439px on a wide screen. This keeps tracks near the media
@@ -72,9 +111,22 @@
 @layer base {
   @media (prefers-color-scheme: dark) {
     :root {
-      --color-canvas: #0e0e0e;
-      --color-surface: #1a1a1a;
-      --color-ink: #f2f2f0;
+      --color-canvas: #121212;
+      --color-surface: #1c1c1c;
+      --color-ink: #f2f2ed;
+      --color-muted: #a3a3a3;
+      --color-border: #2a2a2a;
+      --color-chip-border: #2e2e2e;
+      /* A dark-olive tint of the same hue family as --color-chip-hover,
+         rather than the light mint reused verbatim — a pale mint on a
+         near-black card reads as washed-out, not as a hover affordance. */
+      --color-chip-hover: #26331a;
+      /*
+       * --color-accent, --color-accent-hover, --color-error and
+       * --color-ink-on-accent are intentionally not overridden: the lime
+       * and the red both already read clearly against a near-black surface,
+       * and text on lime must stay near-black in both themes.
+       */
     }
   }
 }

@@ -19,11 +19,16 @@ export function FilterChips({
             type="button"
             aria-pressed={active}
             onClick={() => onSelect(active ? undefined : option)}
-            /* Accent marks state, never decoration. Ink stays dark on accent. */
+            /*
+             * Accent now also carries hover/focus affordance, not only
+             * committed state (see docs/design.md §5) — but selected vs.
+             * inactive is still never conveyed by colour alone: selected
+             * chips also drop the border and go bold (font-semibold).
+             */
             className={
               active
-                ? "min-h-tap-min rounded-full bg-accent px-4 text-sm font-medium text-ink-on-accent"
-                : "min-h-tap-min rounded-full bg-surface px-4 text-sm text-ink"
+                ? "min-h-tap-min rounded-full border-none bg-accent px-4 text-sm font-semibold text-ink-on-accent transition-colors duration-150"
+                : "min-h-tap-min rounded-full border border-chip-border bg-surface px-4 text-sm text-ink transition-colors duration-150 hover:bg-chip-hover"
             }
           >
             {label(option)}

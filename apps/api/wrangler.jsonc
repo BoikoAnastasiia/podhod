@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "podhod-db",
-      "database_id": "PLACEHOLDER_SET_BY_OWNER", // replaced by the owner after `wrangler d1 create podhod-db`; local dev and tests do not use it
+      "database_id": "9999b742-931b-4586-b7d5-815a54960fb0",
       "migrations_dir": "migrations"
     }
   ]

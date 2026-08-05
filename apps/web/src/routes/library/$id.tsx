@@ -17,8 +17,13 @@ function Detail() {
   const { id } = Route.useParams();
   const { lang, term, t } = useI18n();
   const root = useRef<HTMLDivElement>(null);
+  const mediaRef = useRef<HTMLImageElement>(null);
 
-  const { data } = useQuery({
+  const {
+    data,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["exercise", id, lang],
     queryFn: () => fetchExercise(id, lang),
   });
@@ -27,7 +32,10 @@ function Detail() {
     () => {
       if (!data) return;
       const state = takeThumbState();
-      const media = root.current?.querySelector("[data-testid='exercise-gif']");
+      // A ref, not a querySelector on a test attribute — removing
+      // data-testid="exercise-gif" for test hygiene would otherwise
+      // silently kill this animation.
+      const media = mediaRef.current;
       if (!media) return;
 
       gsap.matchMedia().add(
@@ -64,6 +72,24 @@ function Detail() {
     </Link>
   );
 
+  if (isError) {
+    return (
+      <div className="flex flex-col gap-4">
+        {backLink}
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-muted">{t("library.error")}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="min-h-tap-min rounded-full bg-surface px-5 text-sm font-medium text-ink"
+          >
+            {t("library.retry")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div className="flex flex-col gap-4">
@@ -85,6 +111,7 @@ function Detail() {
 
         <div className="w-max rounded-card bg-surface p-3">
           <img
+            ref={mediaRef}
             src={mediaUrl(data.gifPath)}
             alt=""
             width={180}

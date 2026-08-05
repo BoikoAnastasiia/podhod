@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { transformExercise } from "../src/transform.js";
+import { transformExercise, type RawExercise } from "../src/transform.js";
 
 const RAW = {
   id: "0001",
@@ -26,7 +26,7 @@ const RAW = {
 
 describe("transformExercise", () => {
   it("keeps only en and ru steps", () => {
-    const out = transformExercise(RAW as never);
+    const out = transformExercise(RAW as RawExercise);
     expect(out.steps_en).toEqual(RAW.instruction_steps.en);
     expect(out.steps_ru).toEqual(RAW.instruction_steps.ru);
     expect(out).not.toHaveProperty("instruction_steps");
@@ -34,14 +34,14 @@ describe("transformExercise", () => {
   });
 
   it("drops attribution, created_at and the duplicate category field", () => {
-    const out = transformExercise(RAW as never);
+    const out = transformExercise(RAW as RawExercise);
     expect(out).not.toHaveProperty("attribution");
     expect(out).not.toHaveProperty("created_at");
     expect(out).not.toHaveProperty("category");
   });
 
   it("carries identity, taxonomy and media fields through unchanged", () => {
-    const out = transformExercise(RAW as never);
+    const out = transformExercise(RAW as RawExercise);
     expect(out.id).toBe("0001");
     expect(out.name).toBe("3/4 sit-up");
     expect(out.body_part).toBe("waist");

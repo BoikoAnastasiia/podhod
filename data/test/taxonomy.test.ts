@@ -26,7 +26,8 @@ describe("taxonomy.ru.json", () => {
 
   it("has a non-empty Cyrillic translation for every term", () => {
     for (const [en, ru] of Object.entries(taxonomy as Record<string, string>)) {
-      expect(ru.length, `empty translation for "${en}"`).toBeGreaterThan(0);
+      // A regex match against \S already implies non-empty, so this alone
+      // covers both "translated" and "not blank" in one assertion.
       expect(ru, `"${en}" was not translated`).toMatch(/[Ѐ-ӿ]/);
     }
   });

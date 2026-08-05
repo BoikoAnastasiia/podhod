@@ -6,8 +6,12 @@ test("switches the library to Russian", async ({ page }) => {
 
   await page.getByTestId("lang-toggle").click();
 
+  // The first card by id order is exercise 0001 ("3/4 sit-up"), body part
+  // "waist" and equipment "body weight". Assert both known translations
+  // rather than a bare Cyrillic-anywhere regex, which would still pass if
+  // only one of the two label fields (say equipment) stopped translating.
   const first = page.getByTestId("exercise-card").first();
-  await expect(first).toContainText(/[Ѐ-ӿ]/);
+  await expect(first).toContainText("пресс и корпус · собственный вес");
   await expect(page.getByRole("button", { name: /спина|грудь/ }).first())
     .toBeVisible();
 });

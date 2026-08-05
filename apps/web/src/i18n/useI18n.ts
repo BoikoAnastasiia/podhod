@@ -4,10 +4,19 @@ import taxonomyRu from "../../../../data/taxonomy.ru.json" with { type: "json" }
 import { dict } from "./dict.js";
 import { plural } from "./plural.js";
 
+/**
+ * Every dictionary key, derived from the `en` block rather than declared by
+ * hand — `en` and `ru` are checked to share the same key set via `satisfies`
+ * in dict.ts, so this can't drift from what's actually there. A typo in a
+ * call site is then a compile error instead of the raw key rendering on
+ * screen at runtime.
+ */
+export type DictKey = keyof (typeof dict)["en"];
+
 export type I18n = {
   lang: Lang;
   setLang: (l: Lang) => void;
-  t: (key: string) => string;
+  t: (key: DictKey) => string;
   /** Translates a taxonomy term (body part, equipment, target, muscle). */
   term: (value: string) => string;
   plural: (n: number, forms: Parameters<typeof plural>[2]) => string;

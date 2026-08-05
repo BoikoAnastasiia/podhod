@@ -25,8 +25,10 @@ function Shell() {
     setLang(next);
   };
 
+  const i18n = buildI18n(lang, change);
+
   return (
-    <I18nContext.Provider value={buildI18n(lang, change)}>
+    <I18nContext.Provider value={i18n}>
       <div className="min-h-dvh bg-canvas text-ink">
         <div className="mx-auto w-full max-w-page">
           <header className="flex items-center justify-between gap-4 px-4 py-4">
@@ -37,6 +39,7 @@ function Shell() {
               type="button"
               data-testid="lang-toggle"
               onClick={() => change(lang === "en" ? "ru" : "en")}
+              aria-label={lang === "en" ? i18n.t("lang.switchToRu") : i18n.t("lang.switchToEn")}
               className="min-h-tap-min rounded-full bg-surface px-4 text-sm"
             >
               {lang === "en" ? "RU" : "EN"}

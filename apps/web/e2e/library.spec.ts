@@ -22,6 +22,22 @@ test("browses, searches and filters the library", async ({ page }) => {
   await expect(cards.first()).toContainText(/chest/i);
 });
 
+test("loading more exercises grows the result count", async ({ page }) => {
+  await page.goto("/library");
+  const cards = page.getByTestId("exercise-card");
+  await expect(cards.first()).toBeVisible();
+  const initialCount = await cards.count();
+
+  await page.getByRole("button", { name: "Load more" }).click();
+
+  // The full 1,324-exercise library pages 30 at a time with no filter
+  // applied, so a single "load more" click must strictly grow the count
+  // rather than silently topping out at the first page.
+  await expect
+    .poll(() => cards.count(), { timeout: 5000 })
+    .toBeGreaterThan(initialCount);
+});
+
 test("filter chips meet the minimum tap target height", async ({ page }) => {
   await page.goto("/library");
   const chip = page.getByRole("button", { name: "chest" });

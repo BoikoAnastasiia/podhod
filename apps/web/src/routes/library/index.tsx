@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ExerciseCard } from "../../components/ExerciseCard.js";
@@ -20,10 +20,24 @@ function Library() {
   const [q, setQ] = useState("");
   const [bodyPart, setBodyPart] = useState<string | undefined>();
 
-  const { data, isPending } = useQuery({
+  // The query key carries q and bodyPart, so changing either starts a fresh
+  // paginated query rather than appending to the previous filter's pages.
+  const {
+    data,
+    isPending,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ["exercises", lang, q, bodyPart],
-    queryFn: () => fetchExercises({ lang, q, bodyPart }),
+    queryFn: ({ pageParam }) => fetchExercises({ lang, q, bodyPart, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
+
+  const items = data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -32,6 +46,7 @@ function Library() {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder={t("library.search")}
+        aria-label={t("library.search")}
         className="min-h-tap-min rounded-full bg-surface px-5 text-ink placeholder:text-muted"
       />
       <FilterChips
@@ -42,14 +57,39 @@ function Library() {
       />
       {isPending ? (
         <p className="text-muted">{t("library.loading")}</p>
+      ) : isError ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-muted">{t("library.error")}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="min-h-tap-min rounded-full bg-surface px-5 text-sm font-medium text-ink"
+          >
+            {t("library.retry")}
+          </button>
+        </div>
+      ) : items.length === 0 ? (
+        <p className="text-muted">{t("library.empty")}</p>
       ) : (
-        <ul className="grid grid-exercises gap-3">
-          {data?.items.map((exercise) => (
-            <li key={exercise.id}>
-              <ExerciseCard exercise={exercise} label={term} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="grid grid-exercises gap-3">
+            {items.map((exercise) => (
+              <li key={exercise.id}>
+                <ExerciseCard exercise={exercise} label={term} />
+              </li>
+            ))}
+          </ul>
+          {hasNextPage && (
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="min-h-tap-min w-max self-center rounded-full bg-surface px-6 text-sm font-medium text-ink"
+            >
+              {isFetchingNextPage ? t("library.loading") : t("library.loadMore")}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

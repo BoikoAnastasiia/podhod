@@ -20,7 +20,6 @@
 - All GSAP animation goes through `useGSAP()` from `@gsap/react`, inside `gsap.matchMedia()` with a `(prefers-reduced-motion: reduce)` branch that sets end states without animating.
 - Media attribution string is the constant `ATTRIBUTION = "© Gym visual — https://gymvisual.com/"`, exported from `packages/core`. It renders on every exercise detail view. Media is served at 180×180 only.
 - Weight/measurement values: none in this phase.
-- Commit messages: no AI attribution, no `Co-Authored-By` trailer.
 - **The project has no AI or LLM dependency** — not at runtime, not at build time, and nothing in any `package.json`. Exercise names ship in English (see the Task 3 CUT record).
 - Root `package.json` scripts must invoke workspace scripts as `pnpm --filter <pkg> run <script>`. Without `run`, a script whose name collides with a pnpm builtin (`fetch`, `install`, `link`, `pack`, `publish`, `rebuild`, `remove`, `test`…) silently no-ops: exit 0, no output, no error.
 - Node 22+, pnpm 9+.

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("the landing page renders a real, non-placeholder home screen", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Подход", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "PODHOD", level: 1 })).toBeVisible();
 
   // The exercise count is fetched, not hard-coded — it must resolve to a
   // real positive number rather than staying stuck on the loading copy.
@@ -60,6 +60,6 @@ test("the nav marks the active route and navigates", async ({ page }) => {
   );
 
   // The wordmark still returns home from any route.
-  await page.getByRole("link", { name: "Подход" }).click();
+  await page.getByRole("link", { name: "PODHOD" }).click();
   await expect(page).toHaveURL(/\/$/);
 });

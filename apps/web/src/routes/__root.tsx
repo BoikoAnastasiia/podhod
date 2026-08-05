@@ -34,11 +34,24 @@ function Shell() {
         <div className="mx-auto w-full max-w-page">
           <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-4">
             <div className="flex items-center gap-3">
+              {/*
+               * Revalia (see theme.css) only — the wordmark is the one
+               * place this display face is used. font-normal because the
+               * self-hosted file has just the one (400) weight; asking for
+               * bold here would make the browser synthesize a fake one.
+               * Kept at text-base (not larger): measured at 320px, the nav
+               * pill plus the Russian "Упражнения" label plus the EN/RU
+               * toggle already fill the row, and text-lg or text-xl here
+               * pushed the header past 320px and failed
+               * locale.spec.ts's narrow-viewport overflow check. This is
+               * the header — the hero heading below is where Revalia's H
+               * gets room to actually read.
+               */}
               <Link
                 to="/"
-                className="flex min-h-tap-min items-center rounded-full px-2 text-xl font-bold tracking-tight"
+                className="flex min-h-tap-min items-center rounded-full px-2 font-wordmark text-base font-normal"
               >
-                Подход
+                {i18n.t("brand.wordmark")}
               </Link>
               <Nav />
             </div>

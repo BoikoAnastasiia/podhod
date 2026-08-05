@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/*
+ * Self-hosted, not linked to fonts.gstatic.com: no third-party request on
+ * every page load, no render-blocking dependency on Google's CDN, and it
+ * matches this project's existing stance of no external runtime
+ * dependencies. The woff2 and its OFL licence (a requirement of the licence,
+ * not optional) live in public/fonts/revalia/. font-display: swap avoids
+ * blocking the hero's text on the font fetch; index.html preloads the file
+ * since it renders above the fold.
+ */
+@font-face {
+  font-family: "Revalia";
+  src: url("/fonts/revalia/Revalia-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-canvas: #f8f9f5;
   --color-surface: #ffffff;
@@ -10,6 +27,23 @@
   --color-accent-hover: #dfff75;
   --color-error: #ff3b30;
   --color-ink-on-accent: #171717;
+
+  /*
+   * Distinct from --color-accent-hover even though both are #dfff75 today:
+   * that one is a button's hover state, this one is the hero background
+   * wash. Same value now, different reasons to change later — same
+   * rationale as --color-chip-border/--color-chip-hover below.
+   */
+  --color-hero-wash: #dfff75;
+
+  /*
+   * Revalia is a display face (self-hosted above) — Latin-only, unreadable
+   * at body sizes. This token exists solely for the "PODHOD" wordmark (hero
+   * heading, nav link); nothing else should reference it. The fallback
+   * stack only matters for the instant before the woff2 loads (or if it
+   * fails) — ui-sans-serif keeps the wordmark legible either way.
+   */
+  --font-wordmark: "Revalia", ui-sans-serif, sans-serif;
 
   /*
    * The chips brief specifies a border and hover fill a shade apart from the
@@ -99,6 +133,45 @@
  */
 @utility grid-exercises {
   grid-template-columns: repeat(auto-fill, minmax(var(--spacing-card-min), 1fr));
+}
+
+/*
+ * Measured contrast, not a guess: #b8ff2c text on the light canvas/card is
+ * ~1.14-1.21:1 — nowhere near WCAG AA's 4.5:1 minimum for text. So on the
+ * light theme this keeps near-black (--color-ink) as the text colour and
+ * uses lime only as an underline that strengthens on hover — the accent
+ * still signals interactivity without being the (unreadable) text colour.
+ * On the dark theme #b8ff2c text measures ~16:1 against the near-black
+ * canvas, which is genuinely legible, so there the link's text colour
+ * switches to lime outright. Do NOT "fix" the light-theme link colour to
+ * lime — that reintroduces the 1.14:1 failure this comment exists to
+ * prevent.
+ */
+@utility link-inline {
+  color: var(--color-ink);
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-border);
+  text-underline-offset: 2px;
+  transition: text-decoration-color 150ms ease-out;
+
+  &:hover {
+    text-decoration-color: var(--color-accent);
+  }
+
+  /*
+   * Nested here, not as a separate `@layer base { @media { .link-inline
+   * {...} } }` block: Tailwind puts a `@theme`-derived class like this one
+   * in the utilities layer, which always wins over the base layer no
+   * matter what a base-layer rule says — layer order beats selector
+   * specificity and source order. A base-layer override was tried first
+   * and silently lost to the rule above regardless of the media query
+   * matching. Nesting the override inside the utility keeps both
+   * declarations in the same layer, so the media query is what decides.
+   */
+  @media (prefers-color-scheme: dark) {
+    color: var(--color-accent);
+    text-decoration-color: var(--color-accent);
+  }
 }
 
 /*

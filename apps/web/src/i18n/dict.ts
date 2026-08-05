@@ -3,6 +3,10 @@ import type { plural } from "./plural.js";
 
 export const dict = {
   en: {
+    // English is the primary brand language now; "PODHOD" is the Latin
+    // wordmark and is intentionally identical in both locales below — it's
+    // a brand name, not a translated word (see docs/design.md).
+    "brand.wordmark": "PODHOD",
     "nav.library": "Library",
     "library.search": "Search exercises",
     "library.loading": "Loading…",
@@ -29,6 +33,7 @@ export const dict = {
     "detail.secondaryMuscles": "Also works",
   },
   ru: {
+    "brand.wordmark": "PODHOD",
     "nav.library": "Упражнения",
     "library.search": "Поиск упражнений",
     "library.loading": "Загрузка…",

@@ -3,7 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Подход</title>
+    <!--
+      Preloaded because the wordmark renders in the hero, above the fold —
+      without this the browser would only discover the font once it parses
+      the built CSS, a round trip later than necessary.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/revalia/Revalia-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <title>PODHOD</title>
   </head>
   <body>
     <div id="root"></div>

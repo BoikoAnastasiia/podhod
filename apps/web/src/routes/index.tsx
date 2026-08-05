@@ -38,15 +38,31 @@ function Landing() {
 
   return (
     <div className="flex flex-col gap-12 py-8">
-      <section className="flex flex-col gap-10 py-12 md:gap-14 md:py-20 lg:py-28">
+      {/*
+       * The wash: a soft gradient from transparent into --color-hero-wash,
+       * not a hard-edged band — dfff75 is already a pale tint, so even at
+       * full strength at the section's own bottom edge it reads as a wash,
+       * not a stripe. Kept to the hero section only; the stat/card sections
+       * below sit on the plain canvas.
+       */}
+      <section className="flex flex-col gap-10 bg-linear-to-b from-transparent to-hero-wash py-12 md:gap-14 md:py-20 lg:py-28">
         <div className="flex flex-col gap-5 md:gap-6">
-          <h1 className="text-5xl font-bold tracking-tight md:text-7xl lg:text-9xl">Подход</h1>
+          {/*
+           * Revalia (see theme.css) — display face, for the wordmark only.
+           * font-normal: the self-hosted file ships just the 400 weight, so
+           * asking for bold would make the browser synthesize a fake one.
+           * Sized large enough (up to text-9xl) that the distinctive H — the
+           * owner's planned dumbbell-logo letterform — is clearly visible.
+           */}
+          <h1 className="font-wordmark text-5xl font-normal tracking-wide md:text-7xl lg:text-9xl">
+            {t("brand.wordmark")}
+          </h1>
           <p className="max-w-content text-lg text-muted md:text-xl">{t("landing.tagline")}</p>
         </div>
         <Link
           to="/library"
           data-testid="landing-cta"
-          className="inline-flex min-h-tap-min w-max items-center rounded-full bg-ink px-8 py-4 text-base font-semibold text-surface shadow-card transition-shadow duration-200 ease-out hover:shadow-card-hover motion-safe:hover:-translate-y-1 md:text-lg"
+          className="inline-flex min-h-tap-min w-max items-center rounded-full bg-accent px-8 py-4 text-base font-semibold text-ink-on-accent shadow-card transition-shadow duration-200 ease-out hover:bg-accent-hover hover:shadow-card-hover motion-safe:hover:-translate-y-1 md:text-lg"
         >
           {t("home.browseLibrary")}
         </Link>
@@ -94,7 +110,7 @@ function Landing() {
           href={GITHUB_URL}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex min-h-tap-min w-max items-center underline underline-offset-2"
+          className="link-inline inline-flex min-h-tap-min w-max items-center"
         >
           {t("footer.github")}
         </a>

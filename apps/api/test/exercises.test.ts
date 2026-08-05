@@ -1,4 +1,9 @@
-import { detailSchema, errorResponseSchema, listResponseSchema } from "@podhod/schema";
+import {
+  countResponseSchema,
+  detailSchema,
+  errorResponseSchema,
+  listResponseSchema,
+} from "@podhod/schema";
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { applyMigrations } from "./helpers.js";
@@ -117,6 +122,15 @@ describe("GET /api/exercises", () => {
     expect(res.status).toBe(400);
     const body = errorResponseSchema.parse(await res.json());
     expect(body.error.code).toBe("bad_request");
+  });
+});
+
+describe("GET /api/exercises/count", () => {
+  it("counts every exercise regardless of language, unfiltered by the list route's params", async () => {
+    const res = await SELF.fetch("https://x/api/exercises/count");
+    expect(res.status).toBe(200);
+    const body = countResponseSchema.parse(await res.json());
+    expect(body.total).toBe(3);
   });
 });
 

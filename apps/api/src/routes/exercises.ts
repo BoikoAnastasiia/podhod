@@ -1,4 +1,5 @@
 import {
+  countResponseSchema,
   detailSchema,
   errorResponseSchema,
   formatValidationError,
@@ -74,6 +75,15 @@ export const exerciseRoutes = new Hono<Env>()
     const items = rows.slice(0, limit);
     const nextCursor = rows.length > limit ? (items.at(-1)?.id ?? null) : null;
     return c.json({ items, nextCursor });
+  })
+  // Declared before "/:id" so a literal "/count" resolves here rather than
+  // being captured as an exercise id — Hono's router prefers a static
+  // segment over a param one regardless of registration order, but the
+  // order still reads correctly for a human scanning the route list.
+  .get("/count", async (c) => {
+    const db = drizzle(c.env.DB);
+    const [row] = await db.select({ total: sql<number>`count(*)` }).from(exercises);
+    return c.json(countResponseSchema.parse({ total: Number(row?.total ?? 0) }));
   })
   .get("/:id", async (c) => {
     const parsedLang = langQuerySchema.safeParse(c.req.query("lang"));

@@ -45,6 +45,19 @@ export const listResponseSchema = z.object({
 });
 export type ListResponse = z.infer<typeof listResponseSchema>;
 
+/**
+ * The library size shown on the landing page. A separate endpoint rather than
+ * a `total` field folded into `listResponseSchema`, because every list query
+ * is already filtered and paginated — counting the *whole* library from
+ * inside that route would mean a second, differently-filtered query hiding
+ * inside a handler whose job is otherwise "return this page." One count, one
+ * unfiltered query, one route.
+ */
+export const countResponseSchema = z.object({
+  total: z.number().int().nonnegative(),
+});
+export type CountResponse = z.infer<typeof countResponseSchema>;
+
 export const detailSchema = listItemSchema.extend({
   muscleGroup: z.string(),
   secondaryMuscles: z.array(z.string()),

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchExercise, fetchExercises } from "./api.js";
+import { fetchExercise, fetchExerciseCount, fetchExercises } from "./api.js";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -22,6 +22,13 @@ describe("fetchExercises", () => {
     vi.stubGlobal("fetch", f);
     await fetchExercises({ lang: "ru", q: "жим" });
     expect(f.mock.calls[0]![0]).toContain(encodeURIComponent("жим"));
+  });
+});
+
+describe("fetchExerciseCount", () => {
+  it("parses the total from the count route", async () => {
+    vi.stubGlobal("fetch", ok({ total: 1324 }));
+    await expect(fetchExerciseCount()).resolves.toEqual({ total: 1324 });
   });
 });
 

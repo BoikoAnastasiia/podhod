@@ -101,42 +101,74 @@ function Detail() {
   }
 
   return (
-    <div ref={root} className="flex flex-col gap-4">
+    <div ref={root} className="flex flex-col gap-6">
       {backLink}
 
-      <div className="flex max-w-content flex-col gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">{data.name}</h1>
-        <p className="text-sm text-muted">
-          {term(data.bodyPart)} · {term(data.equipment)} · {term(data.target)}
-        </p>
+      {/*
+       * Two columns from lg up — media/metadata alongside instructions,
+       * rather than one 42rem prose column with the rest of a 1920px
+       * viewport empty. Below lg both sides stack: the media/metadata
+       * column first, then instructions, matching reading order.
+       */}
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-12">
+        <div className="flex flex-col gap-6 lg:w-80 lg:shrink-0">
+          <div className="flex flex-col gap-3">
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{data.name}</h1>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full border border-chip-border bg-surface px-3 py-1 text-xs text-muted">
+                {term(data.bodyPart)}
+              </span>
+              <span className="rounded-full border border-chip-border bg-surface px-3 py-1 text-xs text-muted">
+                {term(data.equipment)}
+              </span>
+              <span className="rounded-full border border-chip-border bg-surface px-3 py-1 text-xs text-muted">
+                {term(data.target)}
+              </span>
+            </div>
+          </div>
 
-        <div className="w-max rounded-card bg-surface p-3">
-          <img
-            ref={mediaRef}
-            src={mediaUrl(data.gifPath)}
-            alt=""
-            width={180}
-            height={180}
-            data-testid="exercise-gif"
-            data-flip-id={data.id}
-            className="size-media rounded-row bg-canvas object-contain"
-          />
+          <div className="w-max rounded-card bg-surface p-3 shadow-card">
+            <img
+              ref={mediaRef}
+              src={mediaUrl(data.gifPath)}
+              alt=""
+              width={180}
+              height={180}
+              data-testid="exercise-gif"
+              data-flip-id={data.id}
+              className="size-media rounded-row bg-canvas object-contain"
+            />
+          </div>
+
+          {data.secondaryMuscles.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                {t("detail.secondaryMuscles")}
+              </h2>
+              <p className="text-sm text-muted">
+                {data.secondaryMuscles.map((muscle) => term(muscle)).join(", ")}
+              </p>
+            </div>
+          )}
+
+          <p data-testid="attribution" className="text-xs text-muted">
+            {ATTRIBUTION}
+          </p>
         </div>
 
-        <ol
-          data-testid="exercise-steps"
-          className="flex list-decimal flex-col gap-2 pl-5"
-        >
-          {data.steps.map((step, i) => (
-            <li key={i} className="text-sm leading-relaxed">
-              {step}
-            </li>
-          ))}
-        </ol>
-
-        <p data-testid="attribution" className="text-xs text-muted">
-          {ATTRIBUTION}
-        </p>
+        <div className="flex flex-col gap-4 rounded-card bg-surface p-6 shadow-card lg:max-w-content lg:flex-1">
+          <h2 className="text-lg font-bold tracking-tight">{t("detail.instructions")}</h2>
+          <ol
+            data-testid="exercise-steps"
+            className="flex list-decimal flex-col gap-2 pl-5"
+          >
+            {data.steps.map((step, i) => (
+              <li key={i} className="text-sm leading-relaxed">
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     </div>
   );

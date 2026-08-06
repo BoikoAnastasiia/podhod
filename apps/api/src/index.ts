@@ -4,7 +4,15 @@ import { createAuth } from "./lib/auth.js";
 import { exerciseRoutes } from "./routes/exercises.js";
 import { meRoutes } from "./routes/me.js";
 
-type Env = { Bindings: { DB: D1Database; ASSETS: Fetcher; BETTER_AUTH_SECRET: string } };
+type Env = {
+  Bindings: {
+    DB: D1Database;
+    ASSETS: Fetcher;
+    BETTER_AUTH_SECRET: string;
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_CLIENT_SECRET: string;
+  };
+};
 
 const app = new Hono<Env>();
 

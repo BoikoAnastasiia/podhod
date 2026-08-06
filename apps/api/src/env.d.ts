@@ -11,6 +11,10 @@ declare namespace Cloudflare {
     ASSETS: Fetcher;
     /** Better Auth's session/cookie signing key. Never logged, never committed. */
     BETTER_AUTH_SECRET: string;
+    /** Google OAuth client, from the owner's Google Cloud project. Never logged, never committed. */
+    GOOGLE_CLIENT_ID: string;
+    /** Google OAuth client secret. Never logged, never committed. */
+    GOOGLE_CLIENT_SECRET: string;
   }
 }
 

@@ -26,6 +26,14 @@ export default defineConfig({
           // fresh checkout with no local secrets file, and this signs
           // nothing that outlives the test run. Not the production secret.
           BETTER_AUTH_SECRET: "test-only-secret-never-used-outside-vitest-pool",
+          // createAuth configures the google social provider unconditionally
+          // (src/lib/auth.ts) — Better Auth needs non-empty clientId/
+          // clientSecret strings to construct it even though no test drives
+          // the actual OAuth redirect (that requires a live Google consent
+          // screen and is out of scope for this suite, see e2e/*.spec.ts).
+          // These values are never sent anywhere in a test run.
+          GOOGLE_CLIENT_ID: "test-only-google-client-id-never-used-outside-vitest-pool",
+          GOOGLE_CLIENT_SECRET: "test-only-google-client-secret-never-used-outside-vitest-pool",
         },
       },
     })),

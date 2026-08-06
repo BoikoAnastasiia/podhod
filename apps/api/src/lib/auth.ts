@@ -3,7 +3,14 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "../db/schema.js";
 
-type Env = { Bindings: { DB: D1Database; BETTER_AUTH_SECRET: string } };
+type Env = {
+  Bindings: {
+    DB: D1Database;
+    BETTER_AUTH_SECRET: string;
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_CLIENT_SECRET: string;
+  };
+};
 
 /**
  * Built per-request, not once at module scope: the D1 binding only exists
@@ -45,8 +52,58 @@ export function createAuth(env: Env["Bindings"], requestUrl: string) {
       // later phase-1b work, gated on credentials the owner is still
       // provisioning — requireEmailVerification stays unset (falsy) so
       // sign-up completes immediately rather than gating on a step nothing
-      // can satisfy yet. Google OAuth is the same story: added later, not
-      // stubbed here.
+      // can satisfy yet. Because of that, every email+password account's
+      // emailVerified column stays false indefinitely for now — which
+      // feeds directly into the account-linking decision below.
+    },
+    socialProviders: {
+      google: {
+        clientId: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+      },
+    },
+    /**
+     * Account linking is what happens when someone signs in with Google
+     * using the same email as an existing email+password account. Better
+     * Auth's own default here — confirmed against the installed 1.6.26
+     * source (oauth2/link-account.mjs), not assumed — already refuses to
+     * link automatically unless the *local* row already has
+     * `emailVerified: true`, regardless of what Google itself asserts
+     * about the address:
+     *
+     *   requireLocalEmailVerified = accountLinking?.requireLocalEmailVerified ?? true
+     *
+     * `requireLocalEmailVerified: true` is set explicitly here rather than
+     * left implicit, so this security decision is visible in the config
+     * rather than riding on a default someone could change without
+     * noticing: without it, an attacker could pre-register any victim's
+     * email with a password, then have the victim's real Google identity
+     * silently merged into the attacker-controlled row the moment the
+     * victim used "Continue with Google" — a silent account takeover, not
+     * a bug that fails loudly.
+     *
+     * The cost today: since requireEmailVerification is unset above, an
+     * email+password account's `emailVerified` never becomes true, so
+     * Google sign-in against an email that already has a password account
+     * will *always* fail to link right now — Better Auth returns an
+     * "account not linked" error instead of a session. That is the
+     * intended trade (a confusing error beats a silent takeover) and it
+     * resolves itself for free once email verification ships later this
+     * phase: a verified local account becomes linkable, matching Google's
+     * own already-verified email exactly as this comment says above the
+     * emailAndPassword block. New users who sign up with Google directly
+     * (no prior password account at that email) are unaffected — that's
+     * plain OAuth sign-up, not a link.
+     *
+     * (This option is marked deprecated in 1.6.26 with the gate becoming
+     * unconditional in the next minor — i.e. Better Auth itself is moving
+     * toward making this the only behavior. Setting it explicitly now
+     * costs nothing when that lands.)
+     */
+    account: {
+      accountLinking: {
+        requireLocalEmailVerified: true,
+      },
     },
     databaseHooks: {
       user: {

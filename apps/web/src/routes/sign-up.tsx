@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
+import { GoogleAuthButton } from "../components/GoogleAuthButton.js";
 import { useI18n } from "../i18n/useI18n.js";
 import { authClient } from "../lib/authClient.js";
 
@@ -87,6 +88,12 @@ function SignUp() {
         >
           {submitting ? t("auth.submitting") : t("auth.submitSignUp")}
         </button>
+        <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-muted">
+          <span className="h-px flex-1 bg-border" aria-hidden="true" />
+          {t("auth.or")}
+          <span className="h-px flex-1 bg-border" aria-hidden="true" />
+        </div>
+        <GoogleAuthButton />
       </form>
       <p className="text-sm text-muted">
         {t("auth.switchToSignInPrefix")}{" "}

@@ -3,7 +3,14 @@ import { errorResponseSchema } from "@podhod/schema";
 import type { MiddlewareHandler } from "hono";
 import { createAuth } from "./auth.js";
 
-type Env = { Bindings: { DB: D1Database; BETTER_AUTH_SECRET: string } };
+type Env = {
+  Bindings: {
+    DB: D1Database;
+    BETTER_AUTH_SECRET: string;
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_CLIENT_SECRET: string;
+  };
+};
 
 /**
  * `Awaited<ReturnType<...>>` rather than a hand-written type: Better Auth's

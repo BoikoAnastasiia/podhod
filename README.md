@@ -27,10 +27,11 @@ data pipeline and exercise library.
 | Database | Cloudflare D1 (SQLite) · Drizzle ORM |
 | Auth | Better Auth · Drizzle adapter · sessions in D1 |
 
-Accounts landed in Phase 1b: email/password sign-up and sign-in, sessions as
-ordinary `HttpOnly` cookies, and a `user_settings` row created for every account
-on signup. Google sign-in and email verification are later phase-1b work,
-waiting on credentials rather than code. The library stays public — browsing and
+Accounts landed in Phase 1b: email/password sign-up and sign-in, Google
+sign-in alongside it, sessions as ordinary `HttpOnly` cookies, and a
+`user_settings` row created for every account on signup. Email verification
+is later phase-1b work, waiting on credentials rather than code. The library
+stays public — browsing and
 searching it has never required an account, and `/settings` is the one route
 this phase gates, as a working example for the `/programs` and `/history` routes
 Phase 2 adds behind the same check.
@@ -61,6 +62,16 @@ Auth needs a signing secret that is never committed. Generate one and put it in
 
 ```bash
 echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> apps/api/.dev.vars
+```
+
+Google sign-in needs a Google Cloud OAuth client (the owner's, not one you
+generate) with `http://localhost:8787/api/auth/callback/google` and
+`https://podhod-workout.cc/api/auth/callback/google` as its only authorised
+redirect URIs. Add its id and secret to the same file:
+
+```bash
+echo "GOOGLE_CLIENT_ID=..." >> apps/api/.dev.vars
+echo "GOOGLE_CLIENT_SECRET=..." >> apps/api/.dev.vars
 ```
 
 Then run the workspace tests:

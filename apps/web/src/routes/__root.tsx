@@ -32,8 +32,8 @@ function Shell() {
     <I18nContext.Provider value={i18n}>
       <div className="min-h-dvh bg-canvas text-ink">
         <div className="mx-auto w-full max-w-page">
-          <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-4">
-            <div className="flex items-center gap-3">
+          <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border px-4 py-4">
+            <div className="flex flex-wrap items-center gap-3">
               {/*
                * Revalia (see theme.css) only — the wordmark is the one
                * place this display face is used. font-normal because the
@@ -46,6 +46,14 @@ function Shell() {
                * locale.spec.ts's narrow-viewport overflow check. This is
                * the header — the hero heading below is where Revalia's H
                * gets room to actually read.
+               *
+               * The header and this group both wrap (flex-wrap, not a
+               * fixed single row) since Phase 1b added a session-aware
+               * pill to Nav whose width varies with the signed-in
+               * account's email — a budget that can no longer be measured
+               * once at 320px and assumed fixed. Wrapping is what keeps
+               * locale.spec.ts's overflow check honest as Nav grows in
+               * Phase 2 instead of re-measuring the header every time.
                */}
               <Link
                 to="/"

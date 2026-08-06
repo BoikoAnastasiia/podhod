@@ -10,12 +10,30 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as LibraryIdRouteImport } from './routes/library/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryIndexRoute = LibraryIndexRouteImport.update({
@@ -31,30 +49,50 @@ const LibraryIdRoute = LibraryIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/': typeof LibraryIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/library/$id': typeof LibraryIdRoute
   '/library': typeof LibraryIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/library/$id': typeof LibraryIdRoute
   '/library/': typeof LibraryIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/library/$id' | '/library/'
+  fullPaths:
+    '/' | '/settings' | '/sign-in' | '/sign-up' | '/library/$id' | '/library/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/library/$id' | '/library'
-  id: '__root__' | '/' | '/library/$id' | '/library/'
+  to: '/' | '/settings' | '/sign-in' | '/sign-up' | '/library/$id' | '/library'
+  id:
+    | '__root__'
+    | '/'
+    | '/settings'
+    | '/sign-in'
+    | '/sign-up'
+    | '/library/$id'
+    | '/library/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SettingsRoute: typeof SettingsRoute
+  SignInRoute: typeof SignInRoute
+  SignUpRoute: typeof SignUpRoute
   LibraryIdRoute: typeof LibraryIdRoute
   LibraryIndexRoute: typeof LibraryIndexRoute
 }
@@ -66,6 +104,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library/': {
@@ -87,6 +146,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SettingsRoute: SettingsRoute,
+  SignInRoute: SignInRoute,
+  SignUpRoute: SignUpRoute,
   LibraryIdRoute: LibraryIdRoute,
   LibraryIndexRoute: LibraryIndexRoute,
 }

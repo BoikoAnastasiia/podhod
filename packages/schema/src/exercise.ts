@@ -74,7 +74,7 @@ export type ExerciseDetail = z.infer<typeof detailSchema>;
  */
 export const errorResponseSchema = z.object({
   error: z.object({
-    code: z.enum(["bad_request", "not_found", "internal"]),
+    code: z.enum(["bad_request", "not_found", "internal", "unauthorized"]),
     message: z.string(),
   }),
 });

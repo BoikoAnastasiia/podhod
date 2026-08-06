@@ -22,6 +22,10 @@ export default defineConfig({
           TEST_FIXTURE_MIGRATIONS: await readD1Migrations(
             path.join(here, "test", "fixtures", "migrations"),
           ),
+          // Set here rather than read from .dev.vars: tests must pass on a
+          // fresh checkout with no local secrets file, and this signs
+          // nothing that outlives the test run. Not the production secret.
+          BETTER_AUTH_SECRET: "test-only-secret-never-used-outside-vitest-pool",
         },
       },
     })),

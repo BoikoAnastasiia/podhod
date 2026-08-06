@@ -3,10 +3,12 @@ import {
   detailSchema,
   errorResponseSchema,
   listResponseSchema,
+  meResponseSchema,
   type CountResponse,
   type ExerciseDetail,
   type Lang,
   type ListResponse,
+  type MeResponse,
 } from "@podhod/schema";
 
 async function get<T>(path: string, parse: (v: unknown) => T): Promise<T> {
@@ -51,4 +53,14 @@ export function fetchExercise(id: string, lang: Lang): Promise<ExerciseDetail> {
  */
 export function fetchExerciseCount(): Promise<CountResponse> {
   return get("/api/exercises/count", (v) => countResponseSchema.parse(v));
+}
+
+/**
+ * The one protected read this phase ships. Cookies ride along automatically
+ * — same-origin requests send them without `credentials: "include"` — so a
+ * signed-out caller simply gets the shared 401 envelope `get()` already
+ * turns into a thrown `Error("unauthorized")`.
+ */
+export function fetchMe(): Promise<MeResponse> {
+  return get("/api/me", (v) => meResponseSchema.parse(v));
 }

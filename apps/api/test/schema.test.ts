@@ -7,13 +7,32 @@ beforeAll(async () => {
 });
 
 describe("schema", () => {
-  it("creates both tables", async () => {
+  it("creates both library tables", async () => {
     const { results } = await env.DB.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
     ).all<{ name: string }>();
     const names = results.map((r) => r.name);
     expect(names).toContain("exercises");
     expect(names).toContain("exercise_translations");
+  });
+
+  /**
+   * `applyMigrations` globs every file under apps/api/migrations and applies
+   * them in numeric order (see test/helpers.ts) — this is the check that a
+   * second migration file (0001, adding Better Auth's tables plus
+   * user_settings) actually gets picked up rather than silently skipped.
+   * Every table here comes from 0001; none exist in 0000.
+   */
+  it("also applies the second migration, creating the auth and user_settings tables", async () => {
+    const { results } = await env.DB.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+    ).all<{ name: string }>();
+    const names = results.map((r) => r.name);
+    expect(names).toContain("user");
+    expect(names).toContain("session");
+    expect(names).toContain("account");
+    expect(names).toContain("verification");
+    expect(names).toContain("user_settings");
   });
 
   it("enforces the composite primary key on translations", async () => {

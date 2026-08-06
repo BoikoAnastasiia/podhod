@@ -1,6 +1,7 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { DictKey } from "../i18n/useI18n.js";
 import { useI18n } from "../i18n/useI18n.js";
+import { authClient } from "../lib/authClient.js";
 
 /**
  * Every destination the top bar links to. Сегодня / Программы / История /
@@ -14,6 +15,9 @@ const NAV_ITEMS = [{ to: "/library", labelKey: "nav.library" }] as const satisfi
   labelKey: DictKey;
 }[];
 
+const pillLink =
+  "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
+
 /**
  * With a single destination, a plain text link next to the wordmark reads as
  * a nav bar missing its other tabs. Rather than drop the nav landmark (Phase
@@ -21,22 +25,57 @@ const NAV_ITEMS = [{ to: "/library", labelKey: "nav.library" }] as const satisfi
  * here), this link is styled as a standalone, always-visible pill — a
  * deliberate shortcut, not a lonely tab — so it reads the same with one item
  * as it will with four.
+ *
+ * The auth pill at the end is session-aware rather than another NAV_ITEMS
+ * entry: signed out it's a link (to /sign-in), signed in it's identity plus
+ * a sign-out action, and neither of those is "a destination" in the sense
+ * the rest of this list is. It shares the same pill styling so it reads as
+ * part of the same bar, not a bolted-on control.
  */
 export function Nav() {
   const { t } = useI18n();
+  const navigate = useNavigate();
+  const { data: session, isPending } = authClient.useSession();
+
   return (
-    <nav className="flex items-center gap-1" aria-label={t("nav.library")}>
+    <nav className="flex flex-wrap items-center gap-1" aria-label={t("nav.library")}>
       {NAV_ITEMS.map((item) => (
         <Link
           key={item.to}
           to={item.to}
-          className="flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium transition-colors duration-150 hover:bg-chip-hover hover:text-ink"
+          className={pillLink}
           activeProps={{ className: "border-transparent bg-chip-hover text-ink font-semibold" }}
           inactiveProps={{ className: "text-muted" }}
         >
           {t(item.labelKey)}
         </Link>
       ))}
+      {!isPending &&
+        (session ? (
+          <>
+            <span
+              className="flex min-h-tap-min items-center rounded-full border border-transparent px-4 text-sm text-muted"
+              data-testid="nav-identity"
+            >
+              {session.user.email}
+            </span>
+            <button
+              type="button"
+              data-testid="sign-out"
+              onClick={async () => {
+                await authClient.signOut();
+                navigate({ to: "/" });
+              }}
+              className={`${pillLink} text-muted`}
+            >
+              {t("auth.signOut")}
+            </button>
+          </>
+        ) : (
+          <Link to="/sign-in" data-testid="sign-in-link" className={`${pillLink} text-muted`}>
+            {t("auth.signIn")}
+          </Link>
+        ))}
     </nav>
   );
 }

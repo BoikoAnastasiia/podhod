@@ -25,14 +25,19 @@ data pipeline and exercise library.
 | Motion | GSAP 3 · Flip |
 | API | Hono on Cloudflare Workers |
 | Database | Cloudflare D1 (SQLite) · Drizzle ORM |
+| Auth | Better Auth · Drizzle adapter · sessions in D1 |
 
-Planned for Phase 1b: Better Auth, open signup and route protection — this
-phase ships the library public and read-only, so accounts are deliberately
-deferred rather than missing.
+Accounts landed in Phase 1b: email/password sign-up and sign-in, sessions as
+ordinary `HttpOnly` cookies, and a `user_settings` row created for every account
+on signup. Google sign-in and email verification are later phase-1b work,
+waiting on credentials rather than code. The library stays public — browsing and
+searching it has never required an account, and `/settings` is the one route
+this phase gates, as a working example for the `/programs` and `/history` routes
+Phase 2 adds behind the same check.
 
 A single Worker serves both the API and the client's static assets, so `/api/*`
-is already same-origin — the property Phase 1b's Better Auth will rely on to use
-ordinary `HttpOnly` cookies instead of a token exchange.
+is same-origin — the property that lets Better Auth use ordinary `HttpOnly`
+cookies instead of a token exchange.
 
 The progression engine lives in `packages/core` as pure functions — no database,
 no clock, no network — which is what makes it exhaustively testable.
@@ -49,6 +54,13 @@ the committed data artifacts:
 ```bash
 pnpm --filter @podhod/api run db:migrate:local
 pnpm --filter @podhod/api run seed:local
+```
+
+Auth needs a signing secret that is never committed. Generate one and put it in
+`apps/api/.dev.vars` (git-ignored):
+
+```bash
+echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> apps/api/.dev.vars
 ```
 
 Then run the workspace tests:

@@ -1,4 +1,14 @@
-import { index, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, primaryKey, real, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { user } from "./auth-schema.js";
+
+/**
+ * `user`, `session`, `account` and `verification` below come from
+ * `auth-schema.ts`, which is generated output, not hand-written — see that
+ * file's own header. Re-exported here so drizzle-kit and every other caller
+ * has one schema module to import, matching the pattern the rest of this
+ * file already uses for the library tables.
+ */
+export * from "./auth-schema.js";
 
 /**
  * Language-neutral fields only. `attribution` is deliberately absent — every
@@ -49,3 +59,23 @@ export const exerciseTranslations = sqliteTable(
     index("idx_translations_search").on(t.lang, t.searchText),
   ],
 );
+
+/**
+ * One row per user, per docs/design.md §3. `userId` is the primary key
+ * rather than a separate surrogate one — the relationship is 1:1 and always
+ * will be, so there is no case where a second row for the same user is
+ * meaningful. Created by the `databaseHooks.user.create.after` hook in
+ * src/lib/auth.ts the moment an account exists, with every column but
+ * `userId` left to its SQL default, so the client never has to handle a
+ * signed-in user with no settings row yet.
+ */
+export const userSettings = sqliteTable("user_settings", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  locale: text("locale").notNull().default("en"),
+  units: text("units").notNull().default("kg"),
+  plateIncrementKg: real("plate_increment_kg").notNull().default(2.5),
+  defaultRestSeconds: integer("default_rest_seconds").notNull().default(90),
+  theme: text("theme").notNull().default("system"),
+});

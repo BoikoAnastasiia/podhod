@@ -1,12 +1,27 @@
 import type { ErrorResponse } from "@podhod/schema";
 import { Hono } from "hono";
+import { createAuth } from "./lib/auth.js";
 import { exerciseRoutes } from "./routes/exercises.js";
+import { meRoutes } from "./routes/me.js";
 
-type Env = { Bindings: { DB: D1Database; ASSETS: Fetcher } };
+type Env = { Bindings: { DB: D1Database; ASSETS: Fetcher; BETTER_AUTH_SECRET: string } };
 
 const app = new Hono<Env>();
 
+/**
+ * Better Auth owns everything under here — sign-up, sign-in, sign-out,
+ * session lookup. Mounted with `app.on` (not `.route`) because its own
+ * handler already does its internal routing for GET and POST; Hono only
+ * needs to hand it the raw request. Built per-request via createAuth, not
+ * once at module scope — see that function's own comment for why.
+ */
+app.on(["GET", "POST"], "/api/auth/*", (c) => {
+  const auth = createAuth(c.env, c.req.url);
+  return auth.handler(c.req.raw);
+});
+
 app.route("/api/exercises", exerciseRoutes);
+app.route("/api/me", meRoutes);
 
 /**
  * `run_worker_first: ["/api/*"]` means only API paths reach the Worker before

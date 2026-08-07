@@ -259,15 +259,17 @@ test("the Link Google control in Settings is reachable and starts a redirect to 
  * no network access to Google. `client_id`'s presence is asserted, never
  * its value, per this task's own handling rules for these credentials.
  *
- * The redirect_uri's *host* isn't pinned to one value: `wrangler dev`
- * simulates the Worker's configured `routes` (podhod-workout.cc, per
- * wrangler.jsonc) rather than exposing the literal localhost:8787 the
- * dev server is actually reached on — confirmed by hitting the dev API
- * directly, and separately by driving the real browser flow all the way
- * to Google's consent screen, which showed the same substitution. Both
- * hosts this test accepts are registered with Google either way, so
- * Google itself never errors on it; what regresses if this ever breaks
- * is the *path*, which is what's actually pinned below.
+ * The redirect_uri is pinned whole, host included. It previously accepted
+ * either localhost:8787 or podhod-workout.cc, on the reasoning that
+ * `wrangler dev` simulates the Worker's configured `routes` and that both
+ * hosts were registered with Google anyway. The first half was true and the
+ * second was not: the simulated origin is *http*://podhod-workout.cc, and
+ * Google requires https for every redirect URI outside localhost, so that
+ * value could never have been registered. Real sign-ins from a dev server
+ * failed with redirect_uri_mismatch while this test passed. wrangler.jsonc
+ * now pins `dev.host`, so the origin is the localhost one Google actually
+ * has on file — and pinning it here is what would catch the substitution
+ * coming back.
  */
 for (const [screen, path] of [
   ["sign-in", "/sign-in"],
@@ -296,8 +298,8 @@ for (const [screen, path] of [
     expect(authUrl.hostname).toBe("accounts.google.com");
     expect(authUrl.pathname).toBe("/o/oauth2/v2/auth");
     expect(authUrl.searchParams.get("client_id")).toBeTruthy();
-    expect(authUrl.searchParams.get("redirect_uri")).toMatch(
-      /^https?:\/\/(localhost:8787|podhod-workout\.cc)\/api\/auth\/callback\/google$/,
+    expect(authUrl.searchParams.get("redirect_uri")).toBe(
+      "http://localhost:8787/api/auth/callback/google",
     );
   });
 }

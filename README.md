@@ -74,11 +74,39 @@ echo "GOOGLE_CLIENT_ID=..." >> apps/api/.dev.vars
 echo "GOOGLE_CLIENT_SECRET=..." >> apps/api/.dev.vars
 ```
 
+## Running it
+
+```bash
+pnpm dev
+```
+
+One command for both halves: `pnpm -r --parallel run dev` starts the Worker on
+`:8787` and Vite on `:5173`, prefixing each line of output with the package it
+came from. Open **http://localhost:5173** — Vite proxies `/api` to the Worker,
+so the client is same-origin in development exactly as it is in production, and
+no client code branches on environment. Running the two separately still works
+if you want their logs in separate terminals:
+
+```bash
+pnpm --filter @podhod/api run dev    # Worker + local D1
+pnpm --filter @podhod/web run dev    # Vite
+```
+
+Vite pre-bundles dependencies when it starts, so after any change to a
+dependency — a version bump, a new package — restart it rather than relying on
+hot reload.
+
 Then run the workspace tests:
 
 ```bash
-pnpm test
+pnpm test        # unit tests, every package
+pnpm typecheck
+pnpm --filter @podhod/web run e2e    # Playwright, against a real browser
 ```
+
+Note the `run` in the filtered commands. `pnpm --filter <pkg> <name>` silently
+does nothing when `<name>` collides with one of pnpm's own subcommands, and
+exits 0 while doing it.
 
 ## Exercise data
 

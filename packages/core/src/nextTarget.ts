@@ -1,3 +1,4 @@
+import { doubleTarget } from "./schemes/double.js";
 import { fixedTarget } from "./schemes/fixed.js";
 import { linearTarget } from "./schemes/linear.js";
 import type { NextTargetOptions, Performance, Scheme, Target } from "./types.js";
@@ -20,6 +21,8 @@ export function nextTarget(
       return fixedTarget(scheme, history, options);
     case "linear":
       return linearTarget(scheme, history, options);
+    case "double":
+      return doubleTarget(scheme, history, options);
     default:
       // Replaced by a `never` exhaustiveness check once every scheme has a
       // branch, so that a fifth scheme becomes a compile error rather than a

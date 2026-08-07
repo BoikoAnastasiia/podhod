@@ -59,12 +59,21 @@ One file per scheme rather than one large `nextTarget.ts`: each scheme's rule is
 
 **Files:**
 - Modify: `packages/core/package.json`
-- Create: `packages/core/vitest.config.ts`
+- Modify: `packages/core/tsconfig.json` (include `test`)
 - Create: `packages/core/src/types.ts`
 - Create: `packages/schema/src/scheme.ts`
-- Modify: `packages/schema/src/index.ts`
-- Test: `packages/schema` types are exercised by later tasks; this task's gate is typecheck + the schema parsing test below
+- Modify: `packages/schema/src/index.ts`, `packages/schema/package.json`, `packages/schema/tsconfig.json`
 - Test: `packages/core/test/purity.test.ts`
+- Test: `packages/schema/test/scheme.test.ts`
+
+No `vitest.config.ts` in either package: `data/` already runs `vitest run` with no
+config and vitest's defaults collect `test/**/*.test.ts` correctly. A config file
+that only restates a default is one more thing to keep true.
+
+`packages/schema` has never had a test runner — its schemas were exercised only
+indirectly, through the consumers that import them. `parseSchemeConfig` has two
+distinct failure modes and is the first thing here worth testing directly, so this
+task gives that package a `test` script too.
 
 **Interfaces:**
 - Produces: `Scheme`, `SchemeFixed`, `SchemeLinear`, `SchemeDouble`, `SchemeRpe`, `LoggedSet`, `Performance`, `Target`, `NextTargetOptions` from `@podhod/core`; `schemeSchema`, `parseSchemeConfig` from `@podhod/schema`.

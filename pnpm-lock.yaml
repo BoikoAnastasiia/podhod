@@ -119,7 +119,11 @@ importers:
         specifier: ^4.19.0
         version: 4.23.5
 
-  packages/core: {}
+  packages/core:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
 
   packages/schema:
     dependencies:

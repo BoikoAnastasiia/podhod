@@ -66,6 +66,12 @@ export const dict = {
     "settings.title": "Settings",
     "settings.account": "Account",
     "settings.loading": "Loading your settings…",
+    "settings.methods.title": "Sign-in methods",
+    "settings.method.credential": "Email & password",
+    "settings.method.google": "Google",
+    "settings.linkGoogle": "Connect",
+    "settings.unlink": "Disconnect",
+    "settings.unlinking": "Disconnecting…",
   },
   ru: {
     "brand.wordmark": "PODHOD",
@@ -122,6 +128,12 @@ export const dict = {
     "settings.title": "Настройки",
     "settings.account": "Аккаунт",
     "settings.loading": "Загружаем настройки…",
+    "settings.methods.title": "Способы входа",
+    "settings.method.credential": "Email и пароль",
+    "settings.method.google": "Google",
+    "settings.linkGoogle": "Подключить",
+    "settings.unlink": "Отключить",
+    "settings.unlinking": "Отключаем…",
   },
 } satisfies Record<Lang, Record<string, string>>;
 

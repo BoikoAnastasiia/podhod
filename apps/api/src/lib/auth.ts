@@ -94,23 +94,44 @@ export function createAuth(env: Env["Bindings"], requestUrl: string) {
      * victim used "Continue with Google" — a silent account takeover, not
      * a bug that fails loudly.
      *
-     * The cost today: since requireEmailVerification is unset above, an
-     * email+password account's `emailVerified` never becomes true, so
-     * Google sign-in against an email that already has a password account
-     * will *always* fail to link right now — Better Auth returns an
-     * "account not linked" error instead of a session. That is the
-     * intended trade (a confusing error beats a silent takeover) and it
-     * resolves itself for free once email verification ships later this
-     * phase: a verified local account becomes linkable, matching Google's
-     * own already-verified email exactly as this comment says above the
-     * emailAndPassword block. New users who sign up with Google directly
-     * (no prior password account at that email) are unaffected — that's
-     * plain OAuth sign-up, not a link.
+     * The cost: since requireEmailVerification is unset above and stays
+     * unset permanently (email sending is cancelled for this app — see the
+     * emailAndPassword comment), an email+password account's `emailVerified`
+     * never becomes true, so *implicit* linking — clicking "Continue with
+     * Google" on the sign-in/sign-up screen with an email that already has a
+     * password account — always fails with an "account not linked" error.
+     * Unlike the original comment here, that is not a temporary cost that
+     * "resolves itself once verification ships": it is permanent, because
+     * verification is never shipping. Lowering this flag to make the error
+     * go away is exactly the silent-takeover hole two paragraphs up
+     * describes — it stays `true`.
+     *
+     * The dead end this leaves needs a different fix, and Better Auth
+     * already has one that needs no email at all: `authClient.linkSocial()`,
+     * called from an *authenticated* session (see apps/web's /settings
+     * route). Confirmed against the same source file — the manual link path
+     * (`/link-social` plus its half of `/callback/:id` in
+     * api/routes/account.mjs and api/routes/callback.mjs) never reads
+     * `requireLocalEmailVerified` at all; it only checks that the signed-in
+     * session's email matches the Google account being linked. That's
+     * correct, not an oversight: being authenticated in the password account
+     * *is* the proof of control that email verification would otherwise have
+     * supplied, so gating manual linking on it too would just be demanding
+     * the same proof twice. The unauthenticated, implicit path above has no
+     * such proof to lean on — someone need only know a victim's email to
+     * trigger it — which is exactly why it stays hard-blocked while the
+     * authenticated path stays open. Automatic linking is never turned on
+     * for the sign-in path itself; only a signed-in visitor acting on their
+     * own account in Settings can link.
+     *
+     * New users who sign up with Google directly (no prior password account
+     * at that email) are unaffected either way — that's plain OAuth sign-up,
+     * not a link.
      *
      * (This option is marked deprecated in 1.6.26 with the gate becoming
      * unconditional in the next minor — i.e. Better Auth itself is moving
-     * toward making this the only behavior. Setting it explicitly now
-     * costs nothing when that lands.)
+     * toward making this the only behavior. Setting it explicitly now costs
+     * nothing when that lands.)
      */
     account: {
       accountLinking: {

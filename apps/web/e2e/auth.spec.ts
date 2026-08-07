@@ -197,6 +197,56 @@ test("sign-in shows an actionable message after an account-linking dead end", as
   await expect(page.getByTestId("auth-error")).toContainText("Settings");
 });
 
+test("/settings shows the connected sign-in method and no unlink control with only one", async ({
+  page,
+}) => {
+  const email = freshEmail("methods");
+  await page.goto("/sign-up");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByTestId("sign-up-submit").click();
+  await expect(page.getByTestId("nav-identity")).toBeVisible();
+
+  await page.goto("/settings");
+  await expect(page.getByTestId("settings-methods")).toBeVisible();
+  await expect(page.getByTestId("method-credential")).toContainText("Email & password");
+  // Only one connected method: the guard against locking the account out
+  // means no disconnect control should even be offered for it.
+  await expect(page.getByTestId("unlink-credential")).toHaveCount(0);
+  // Google isn't connected yet: the connect control is offered instead.
+  await expect(page.getByTestId("link-google")).toBeVisible();
+});
+
+test("the Link Google control in Settings is reachable and starts a redirect to Google", async ({
+  page,
+}) => {
+  const email = freshEmail("link-google");
+  await page.goto("/sign-up");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByTestId("sign-up-submit").click();
+  await expect(page.getByTestId("nav-identity")).toBeVisible();
+
+  await page.goto("/settings");
+  const linkButton = page.getByTestId("link-google");
+  await expect(linkButton).toBeVisible();
+  await linkButton.focus();
+  await expect(linkButton).toBeFocused();
+
+  let capturedUrl: string | undefined;
+  await page.route("https://accounts.google.com/**", async (route) => {
+    capturedUrl = route.request().url();
+    await route.abort();
+  });
+
+  await linkButton.press("Enter");
+
+  await expect.poll(() => capturedUrl, { timeout: 5000 }).toBeTruthy();
+  const authUrl = new URL(capturedUrl!);
+  expect(authUrl.hostname).toBe("accounts.google.com");
+  expect(authUrl.pathname).toBe("/o/oauth2/v2/auth");
+});
+
 /**
  * Deliberately not e2e-ing the Google flow itself: that needs a real Google
  * account, a live consent screen, and credentials this suite doesn't have.

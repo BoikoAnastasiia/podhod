@@ -13,6 +13,15 @@
     { "pattern": "podhod-workout.cc", "custom_domain": true },
     { "pattern": "www.podhod-workout.cc", "custom_domain": true }
   ],
+  // `wrangler dev` otherwise simulates requests as arriving at the first
+  // route above, so a Worker that derives anything from its own request URL
+  // — auth.ts builds Better Auth's baseURL that way — sees
+  // http://podhod-workout.cc in local development and sends Google an OAuth
+  // redirect_uri pointing at production over plain http. Google rejects that
+  // with redirect_uri_mismatch, and can never accept it: it requires https
+  // for every non-localhost redirect URI. Pinning the dev host to localhost
+  // makes the derived origin match the port wrangler is actually serving.
+  "dev": { "host": "localhost:8787" },
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",

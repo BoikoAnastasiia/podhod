@@ -50,5 +50,12 @@ describe("theme.css build output", () => {
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }
-  });
+    // Vitest's default 5s timeout is wrong for a test that shells out to a
+    // real build: how long that takes is a property of the machine, not of
+    // the code under test. It runs in 1-2s on a developer's laptop and blew
+    // past 5s on CI, where the runner has fewer cores and `pnpm -r test`
+    // has apps/api's pretest building this same app concurrently. A build
+    // slow enough to exceed this ceiling is a broken runner, not a failed
+    // assertion, so the number is deliberately far above any real duration.
+  }, 120_000);
 });

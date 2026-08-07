@@ -23,8 +23,12 @@ export const PASSWORD_MAX_LENGTH = 128;
  * the latter. Better Auth's own `emailVerified` column is the only honest
  * signal of verification this app has, and it stays false for every
  * email+password account for exactly this reason.
+ *
+ * `.trim().pipe()` rather than `z.email().trim()`: the trim has to run
+ * *before* the format check, or a pasted address with stray whitespace is
+ * rejected as malformed.
  */
-const email = z.string().trim().min(1).email();
+const email = z.string().trim().pipe(z.email());
 
 const password = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH);
 

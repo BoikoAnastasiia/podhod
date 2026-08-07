@@ -42,4 +42,25 @@ describe("authValidationMessage", () => {
   it("accepts a well-formed email and a password at the configured floor", () => {
     expect(signInSchema.safeParse({ email: "a@b.co", password: "exactly8" }).success).toBe(true);
   });
+
+  /**
+   * The schema trims before it checks the format, so an address a visitor
+   * pasted with stray whitespace is accepted and stored trimmed rather than
+   * rejected as malformed. Asserted here because the trim and the format
+   * check are two separate steps in the schema — reorder them and this is
+   * the only thing that notices.
+   */
+  it("trims surrounding whitespace before validating the email format", () => {
+    const parsed = signInSchema.safeParse({ email: "  a@b.co  ", password: "exactly8" });
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) throw new Error("expected success");
+    expect(parsed.data.email).toBe("a@b.co");
+  });
+
+  it("still rejects an empty email, which trimming alone would let through", () => {
+    const parsed = signInSchema.safeParse({ email: "   ", password: "exactly8" });
+    expect(parsed.success).toBe(false);
+    if (parsed.success) throw new Error("expected failure");
+    expect(authValidationMessage(parsed.error, t)).toBe(t("auth.error.invalidEmail"));
+  });
 });

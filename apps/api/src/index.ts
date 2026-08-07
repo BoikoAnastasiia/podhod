@@ -1,6 +1,7 @@
 import type { ErrorResponse } from "@podhod/schema";
 import { Hono } from "hono";
 import { createAuth } from "./lib/auth.js";
+import { validateAuthBody } from "./lib/authValidation.js";
 import { exerciseRoutes } from "./routes/exercises.js";
 import { meRoutes } from "./routes/me.js";
 
@@ -23,7 +24,15 @@ const app = new Hono<Env>();
  * needs to hand it the raw request. Built per-request via createAuth, not
  * once at module scope — see that function's own comment for why.
  */
-app.on(["GET", "POST"], "/api/auth/*", (c) => {
+app.on(["GET", "POST"], "/api/auth/*", async (c) => {
+  // The real server-side gate for the sign-in/sign-up forms — see
+  // lib/authValidation.ts. Runs before Better Auth's own handler ever sees
+  // the request, so a caller that bypasses apps/web's client-side check
+  // gets the same shared error envelope every other route in this app uses.
+  const validationError = await validateAuthBody(c.req.raw);
+  if (validationError) {
+    return c.json(validationError, 400);
+  }
   const auth = createAuth(c.env, c.req.url);
   return auth.handler(c.req.raw);
 });

@@ -49,6 +49,20 @@ export const dict = {
     "auth.error.invalidCredentials": "That email or password isn't right.",
     "auth.error.emailInUse": "An account with that email already exists.",
     "auth.error.generic": "Something went wrong. Try again.",
+    // Client-side form validation (packages/schema's signInSchema/
+    // signUpSchema) — format only, never a claim that the address is
+    // verified. See packages/schema/src/auth.ts.
+    "auth.error.invalidEmail": "Enter a valid email address.",
+    "auth.error.passwordTooShort": "Password must be at least 8 characters.",
+    "auth.error.passwordTooLong": "Password must be 128 characters or fewer.",
+    // OAuth redirect failures — see lib/oauthErrors.ts.
+    "auth.error.accountNotLinked":
+      "This email already has a password account. Sign in with your password, then connect Google from Settings.",
+    "auth.error.linkUnableToLink": "Couldn't connect that Google account. Try again.",
+    "auth.error.linkEmailMismatch":
+      "That Google account uses a different email address than your account.",
+    "auth.error.linkAlreadyLinkedElsewhere":
+      "That Google account is already connected to a different account.",
     "settings.title": "Settings",
     "settings.account": "Account",
     "settings.loading": "Loading your settings…",
@@ -97,6 +111,14 @@ export const dict = {
     "auth.error.invalidCredentials": "Неверный email или пароль.",
     "auth.error.emailInUse": "Аккаунт с таким email уже существует.",
     "auth.error.generic": "Что-то пошло не так. Попробуйте ещё раз.",
+    "auth.error.invalidEmail": "Введите корректный email.",
+    "auth.error.passwordTooShort": "Пароль должен быть не короче 8 символов.",
+    "auth.error.passwordTooLong": "Пароль должен быть не длиннее 128 символов.",
+    "auth.error.accountNotLinked":
+      "Этот email уже используется в аккаунте с паролем. Войдите с паролем, затем подключите Google в настройках.",
+    "auth.error.linkUnableToLink": "Не удалось подключить аккаунт Google. Попробуйте ещё раз.",
+    "auth.error.linkEmailMismatch": "У этого аккаунта Google другой email.",
+    "auth.error.linkAlreadyLinkedElsewhere": "Этот аккаунт Google уже подключён к другому аккаунту.",
     "settings.title": "Настройки",
     "settings.account": "Аккаунт",
     "settings.loading": "Загружаем настройки…",

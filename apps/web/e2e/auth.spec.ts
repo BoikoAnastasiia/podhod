@@ -111,6 +111,93 @@ test("the library remains reachable while signed out", async ({ page }) => {
 });
 
 /**
+ * Client-side validation (signInSchema/signUpSchema, packages/schema) is a
+ * convenience only — apps/api/src/lib/authValidation.ts is the real gate
+ * (see apps/api/test/auth.test.ts). What matters here is that a malformed
+ * submission never even reaches the network: the `page.route` interception
+ * below fails the test if it does, proving the rejection happened client-side.
+ */
+test("an invalid email is rejected client-side, before any network call", async ({ page }) => {
+  // Scoped to the sign-up endpoint specifically, not all of /api/auth/** —
+  // Nav's `authClient.useSession()` polls /api/auth/get-session in the
+  // background on every navigation regardless of this test, which would
+  // otherwise make this assertion fail for a reason unrelated to what it's
+  // actually checking.
+  let calledAuthApi = false;
+  await page.route("**/api/auth/sign-up/email", async (route) => {
+    calledAuthApi = true;
+    await route.abort();
+  });
+
+  await page.goto("/sign-up");
+  await page.getByLabel("Email").fill("not-an-email");
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByTestId("sign-up-submit").click();
+
+  await expect(page.getByTestId("auth-error")).toContainText(
+    "Enter a valid email address.",
+  );
+  await expect(page).toHaveURL(/\/sign-up$/);
+  expect(calledAuthApi).toBe(false);
+});
+
+test("a too-short password is rejected client-side, before any network call", async ({
+  page,
+}) => {
+  let calledAuthApi = false;
+  await page.route("**/api/auth/sign-up/email", async (route) => {
+    calledAuthApi = true;
+    await route.abort();
+  });
+
+  await page.goto("/sign-up");
+  await page.getByLabel("Email").fill(freshEmail("shortpw"));
+  await page.getByLabel("Password").fill("short1");
+  await page.getByTestId("sign-up-submit").click();
+
+  await expect(page.getByTestId("auth-error")).toContainText(
+    "Password must be at least 8 characters.",
+  );
+  await expect(page).toHaveURL(/\/sign-up$/);
+  expect(calledAuthApi).toBe(false);
+});
+
+/**
+ * Server-side rejection of a request that skips apps/web's form entirely —
+ * the actual gate. apps/api/test/auth.test.ts covers this same rule at the
+ * unit level in more depth; this confirms it's wired into the real running
+ * Worker this whole suite drives, not just the isolated test environment.
+ */
+test("the server rejects a malformed sign-up request that bypasses the client form", async ({
+  page,
+}) => {
+  const res = await page.request.post("/api/auth/sign-up/email", {
+    headers: { "content-type": "application/json" },
+    data: { email: "not-an-email", password: "whatever1", name: "Nobody" },
+  });
+  expect(res.status()).toBe(400);
+  const body = await res.json();
+  expect(body.error.code).toBe("bad_request");
+});
+
+/**
+ * The dead-end error this phase fixes: Better Auth's implicit-linking
+ * refusal (an "account not linked" redirect — see apps/api/src/lib/auth.ts)
+ * used to surface as a raw, unexplained code. Driving the actual OAuth
+ * handshake needs a live Google consent screen (out of reach here, same as
+ * every other Google-flow test in this file) — what's covered
+ * deterministically instead is that landing on this URL, exactly as Better
+ * Auth's own redirect would leave the visitor, renders the actionable
+ * message rather than the code itself.
+ */
+test("sign-in shows an actionable message after an account-linking dead end", async ({
+  page,
+}) => {
+  await page.goto("/sign-in?error=account_not_linked");
+  await expect(page.getByTestId("auth-error")).toContainText("Settings");
+});
+
+/**
  * Deliberately not e2e-ing the Google flow itself: that needs a real Google
  * account, a live consent screen, and credentials this suite doesn't have.
  * What's covered instead, deterministically: the button exists on both

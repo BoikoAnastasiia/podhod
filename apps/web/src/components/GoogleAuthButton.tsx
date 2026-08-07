@@ -17,7 +17,23 @@ import { authClient } from "../lib/authClient.js";
  * button exists, is reachable by keyboard, and — on click — starts a
  * redirect toward Google's authorisation endpoint. See e2e/auth.spec.ts.
  */
-export function GoogleAuthButton({ redirectTo }: { redirectTo?: string }) {
+export function GoogleAuthButton({
+  redirectTo,
+  errorRedirectTo,
+}: {
+  redirectTo?: string;
+  /**
+   * Where Better Auth sends the visitor back to when the OAuth attempt
+   * fails — including the "account not linked" dead end (see
+   * apps/api/src/lib/auth.ts and lib/oauthErrors.ts). Kept separate from
+   * `redirectTo`: a successful sign-in and a failed attempt want different
+   * destinations (home vs. back to this same screen with an explanation),
+   * so one URL can't serve both. Callers pass their own route so the
+   * `?error=<code>` query param Better Auth appends lands somewhere that
+   * reads it — see sign-in.tsx / sign-up.tsx's `validateSearch`.
+   */
+  errorRedirectTo?: string;
+}) {
   const { t } = useI18n();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +44,7 @@ export function GoogleAuthButton({ redirectTo }: { redirectTo?: string }) {
     const { error: signInError } = await authClient.signIn.social({
       provider: "google",
       callbackURL: redirectTo ?? "/",
+      errorCallbackURL: errorRedirectTo,
     });
     // A successful call navigates the browser away to Google before this
     // line would run; reaching it at all means the request failed before

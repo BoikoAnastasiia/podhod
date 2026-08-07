@@ -1,3 +1,4 @@
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@podhod/schema";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { drizzle } from "drizzle-orm/d1";
@@ -48,13 +49,24 @@ export function createAuth(env: Env["Bindings"], requestUrl: string) {
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
     emailAndPassword: {
       enabled: true,
-      // Cloudflare Email Sending and the verification gate it enables are
-      // later phase-1b work, gated on credentials the owner is still
-      // provisioning — requireEmailVerification stays unset (falsy) so
-      // sign-up completes immediately rather than gating on a step nothing
-      // can satisfy yet. Because of that, every email+password account's
-      // emailVerified column stays false indefinitely for now — which
-      // feeds directly into the account-linking decision below.
+      // Cloudflare Email Sending requires the Workers Paid plan; the owner
+      // declined it (its only benefit here was safe account linking for a
+      // single-user app — see the account-linking comment below for the
+      // manual alternative this phase ships instead). requireEmailVerification
+      // therefore stays unset (falsy) permanently, not just "for now" — sign-up
+      // completes immediately rather than gating on a step nothing can ever
+      // satisfy. Every email+password account's emailVerified column stays
+      // false forever as a result, which feeds directly into the
+      // account-linking decision below.
+      //
+      // minPasswordLength/maxPasswordLength are set explicitly to the same
+      // constants apps/web's sign-in/sign-up forms validate against
+      // (packages/schema/src/auth.ts) rather than left to Better Auth's own
+      // defaults (which happen to be these same numbers today): importing
+      // one constant in two places can't drift, a coincidentally-matching
+      // default silently could the moment either side's dependency updates.
+      minPasswordLength: PASSWORD_MIN_LENGTH,
+      maxPasswordLength: PASSWORD_MAX_LENGTH,
     },
     socialProviders: {
       google: {

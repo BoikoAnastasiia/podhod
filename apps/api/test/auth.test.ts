@@ -118,3 +118,62 @@ describe("auth", () => {
     expect(me.status).toBe(401);
   });
 });
+
+/**
+ * The real server-side gate (lib/authValidation.ts) — proves a caller that
+ * bypasses apps/web's client-side form entirely (curl, a modified client,
+ * these tests themselves) still gets rejected, with this app's own shared
+ * error envelope, before Better Auth's own handler ever runs. Client-side
+ * validation (signInSchema/signUpSchema in the sign-in/sign-up routes) is
+ * only ever a convenience; this is what actually enforces the rule.
+ */
+describe("auth request-body validation (server-side gate)", () => {
+  it("rejects a sign-up with a malformed email before Better Auth's handler runs", async () => {
+    const res = await SELF.fetch(`${ORIGIN}/api/auth/sign-up/email`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ email: "not-an-email", password: "correct-horse-6", name: "Frank" }),
+    });
+    expect(res.status).toBe(400);
+    const body = errorResponseSchema.parse(await res.json());
+    expect(body.error.code).toBe("bad_request");
+
+    // Confirms this really was rejected before Better Auth ran at all: no
+    // user was created, so the same address can still sign up cleanly.
+    const retry = await signUp("frank@example.com", "correct-horse-6", "Frank");
+    expect(retry.status).toBe(200);
+  });
+
+  it("rejects a sign-up with a password shorter than the configured floor", async () => {
+    const res = await SELF.fetch(`${ORIGIN}/api/auth/sign-up/email`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ email: "grace@example.com", password: "short1", name: "Grace" }),
+    });
+    expect(res.status).toBe(400);
+    const body = errorResponseSchema.parse(await res.json());
+    expect(body.error.code).toBe("bad_request");
+  });
+
+  it("rejects a sign-in with a malformed email, using this app's own error envelope", async () => {
+    const res = await SELF.fetch(`${ORIGIN}/api/auth/sign-in/email`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ email: "nope", password: "whatever1" }),
+    });
+    expect(res.status).toBe(400);
+    const body = errorResponseSchema.parse(await res.json());
+    expect(body.error.code).toBe("bad_request");
+  });
+
+  it("lets a well-formed sign-in request through to Better Auth's own handler", async () => {
+    await signUp("henry@example.com", "correct-horse-7", "Henry");
+
+    const res = await SELF.fetch(`${ORIGIN}/api/auth/sign-in/email`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ email: "henry@example.com", password: "correct-horse-7" }),
+    });
+    expect(res.status).toBe(200);
+  });
+});

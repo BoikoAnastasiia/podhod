@@ -1,29 +1,60 @@
+import { signUpSchema } from "@podhod/schema";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { GoogleAuthButton } from "../components/GoogleAuthButton.js";
 import { useI18n } from "../i18n/useI18n.js";
 import { authClient } from "../lib/authClient.js";
+import { authValidationMessage } from "../lib/authFormErrors.js";
+import { oauthErrorMessage } from "../lib/oauthErrors.js";
 
-export const Route = createFileRoute("/sign-up")({ component: SignUp });
+type SignUpSearch = { error?: string };
+
+export const Route = createFileRoute("/sign-up")({
+  // See sign-in.tsx's matching comment: search-param parsing and the form's
+  // own body validation (signUpSchema, below) are different concerns.
+  validateSearch: (search: Record<string, unknown>): SignUpSearch => ({
+    error: typeof search["error"] === "string" ? search["error"] : undefined,
+  }),
+  component: SignUp,
+});
 
 function SignUp() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const { error: oauthError } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const displayError = error ?? oauthErrorMessage(oauthError, t);
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSubmitting(true);
+
     // Better Auth's user record requires a display name; this app collects
     // only email and password (the owner's call — see docs/plans), so the
     // local part of the address stands in until Settings grows a real name
     // field. It's editable later; it just can't be blank today.
     const name = email.split("@")[0] || email;
-    const { error: signUpError } = await authClient.signUp.email({ email, password, name });
+
+    // Client-side validation is a convenience — immediate feedback before a
+    // network round trip — never the security boundary. apps/api/src/lib/
+    // authValidation.ts revalidates the identical shared schema server-side,
+    // which is the gate that actually matters.
+    const parsed = signUpSchema.safeParse({ email, password, name });
+    if (!parsed.success) {
+      setError(authValidationMessage(parsed.error, t));
+      return;
+    }
+
+    setSubmitting(true);
+    const { error: signUpError } = await authClient.signUp.email({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      name: parsed.data.name ?? name,
+    });
     setSubmitting(false);
     if (signUpError) {
       setError(
@@ -49,6 +80,7 @@ function SignUp() {
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t("auth.signUpTitle")}</h1>
       <form
         onSubmit={onSubmit}
+        noValidate
         className="flex flex-col gap-4 rounded-card bg-surface p-6 shadow-card"
       >
         <label className="flex flex-col gap-1">
@@ -75,9 +107,9 @@ function SignUp() {
           />
         </label>
         {/* The one place accent-red belongs today: the error state. */}
-        {error && (
+        {displayError && (
           <p className="text-error" data-testid="auth-error">
-            {error}
+            {displayError}
           </p>
         )}
         <button
@@ -93,7 +125,7 @@ function SignUp() {
           {t("auth.or")}
           <span className="h-px flex-1 bg-border" aria-hidden="true" />
         </div>
-        <GoogleAuthButton />
+        <GoogleAuthButton errorRedirectTo="/sign-up" />
       </form>
       <p className="text-sm text-muted">
         {t("auth.switchToSignInPrefix")}{" "}

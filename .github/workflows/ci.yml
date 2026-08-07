@@ -96,6 +96,19 @@ jobs:
 
       - run: pnpm --filter @podhod/web run build
 
+      # `wrangler deploy` ships the Worker, never the database schema — the two
+      # are deployed separately. Without this step the auth migration stayed
+      # local: production ran code that queried `user` and `session` against a
+      # database holding only the exercise tables, so every sign-in and sign-up
+      # returned 500 while the library kept working. Applying before the deploy
+      # keeps the schema from ever being behind the code that expects it, and
+      # the command is idempotent — it records what it has run in the
+      # d1_migrations table and skips those next time.
+      - run: pnpm --filter @podhod/api run db:migrate:remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - run: pnpm --filter @podhod/api run deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

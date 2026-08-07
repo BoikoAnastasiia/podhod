@@ -40,8 +40,29 @@ A single Worker serves both the API and the client's static assets, so `/api/*`
 is same-origin — the property that lets Better Auth use ordinary `HttpOnly`
 cookies instead of a token exchange.
 
-The progression engine lives in `packages/core` as pure functions — no database,
-no clock, no network — which is what makes it exhaustively testable.
+## The progression engine
+
+`packages/core` computes what to lift next. Given a scheme and your own history
+of an exercise, `nextTarget()` returns the sets, reps and weight for the next
+session — plus *why* it changed, as `progressed`, `held` or `deloaded`, so the
+UI can explain a deload rather than silently dropping your weight.
+
+Four schemes: fixed, linear with deloads on a failure streak, double progression,
+and RPE-based autoregulation. Every computed weight is rounded **down** to the
+configured plate increment, because 82.4 kg is not a thing anyone can load, and
+rounding up would partly undo a deload that a failure streak just earned.
+
+With no history the engine returns `needsBaseline` instead of guessing — a
+distinct shape rather than a nullable weight, because asking for a starting
+weight is a different screen, not a missing field. The exception is the fixed
+scheme, whose weight is configured rather than derived, so it has nothing to
+establish.
+
+It is deliberately pure: no clock, no database, no network, no randomness. The
+ordering of the history array is the only temporal information it receives.
+That makes every rule testable with a literal input and a literal expectation,
+with no mocks anywhere, and a test enforces the purity by reading the source —
+so a `Date.now()` added down an untested branch fails the build.
 
 ## Setup
 

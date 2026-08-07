@@ -79,3 +79,78 @@ export const userSettings = sqliteTable("user_settings", {
   defaultRestSeconds: integer("default_rest_seconds").notNull().default(90),
   theme: text("theme").notNull().default("system"),
 });
+
+/**
+ * A training program: an ordered set of days, each an ordered set of exercises
+ * with a progression scheme. Programs are edited constantly, which is why a
+ * workout will snapshot its plan rather than pointing at these rows — see
+ * docs/design.md §3.
+ *
+ * `archivedAt` rather than a delete: history references programs by name long
+ * after they stop being followed, and a DELETE would make old sessions
+ * unreadable.
+ *
+ * `isActive` is 0/1 rather than a boolean because the partial unique index
+ * that enforces one active program per user is written against the integer.
+ * That index lives in the migration by hand — drizzle-kit does not emit
+ * partial indexes — and it is what actually enforces the rule: two concurrent
+ * activations both pass an application-level check and both write.
+ */
+export const programs = sqliteTable(
+  "programs",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    notes: text("notes"),
+    isActive: integer("is_active").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
+    archivedAt: integer("archived_at"),
+  },
+  (t) => [index("idx_programs_user").on(t.userId)],
+);
+
+export const programDays = sqliteTable(
+  "program_days",
+  {
+    id: text("id").primaryKey(),
+    programId: text("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    name: text("name").notNull(),
+  },
+  (t) => [index("idx_program_days_program").on(t.programId, t.position)],
+);
+
+/**
+ * `schemeConfig` is TEXT holding JSON rather than a column per scheme field:
+ * the four schemes share almost nothing, so columns would be mostly NULL and
+ * every read would need to know which ones apply. It is validated against
+ * `schemeSchema` on the way in and parsed with `parseSchemeConfig` on the way
+ * out, so stored JSON is never trusted merely because it is already stored.
+ *
+ * `schemeType` duplicates `scheme.kind` deliberately: it is written from the
+ * JSON at every write, and exists only so a query like "every exercise I train
+ * with double progression" does not have to parse JSON in SQL.
+ */
+export const programExercises = sqliteTable(
+  "program_exercises",
+  {
+    id: text("id").primaryKey(),
+    programDayId: text("program_day_id")
+      .notNull()
+      .references(() => programDays.id, { onDelete: "cascade" }),
+    exerciseId: text("exercise_id")
+      .notNull()
+      .references(() => exercises.id),
+    position: integer("position").notNull(),
+    schemeType: text("scheme_type").notNull(),
+    schemeConfig: text("scheme_config").notNull(),
+    restSeconds: integer("rest_seconds"),
+    notes: text("notes"),
+  },
+  (t) => [index("idx_program_exercises_day").on(t.programDayId, t.position)],
+);

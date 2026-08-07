@@ -32,6 +32,22 @@ jobs:
       - run: pnpm --filter @podhod/api run db:migrate:local
       - run: pnpm --filter @podhod/api run seed:local
 
+      # wrangler dev reads apps/api/.dev.vars, which is git-ignored because it
+      # holds real credentials on a developer's machine. CI has none and needs
+      # none: the Google tests assert that an authorisation URL is *built*
+      # correctly and abort the request before it leaves the browser, so any
+      # non-empty client id exercises the same code path. Without a value
+      # Better Auth cannot construct the URL at all, and those tests fail with
+      # no redirect rather than a wrong one. These are placeholders, not
+      # secrets — they authenticate nothing and are useless off this runner.
+      - name: Write placeholder auth credentials for the dev Worker
+        run: |
+          cat > apps/api/.dev.vars <<'VARS'
+          BETTER_AUTH_SECRET=ci-placeholder-secret-not-used-for-anything-real
+          GOOGLE_CLIENT_ID=ci-placeholder.apps.googleusercontent.com
+          GOOGLE_CLIENT_SECRET=ci-placeholder-google-secret
+          VARS
+
       # Playwright's own webServer only starts Vite, which proxies /api to
       # :8787. The Worker has to already be listening there, so start it
       # here in the background and wait for it to bind instead of guessing

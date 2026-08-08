@@ -1,14 +1,22 @@
 import {
   countResponseSchema,
+  createdIdSchema,
   detailSchema,
   errorResponseSchema,
   listResponseSchema,
   meResponseSchema,
+  programDetailSchema,
+  programListResponseSchema,
   type CountResponse,
+  type CreateProgramExerciseInput,
+  type CreateProgramInput,
   type ExerciseDetail,
   type Lang,
   type ListResponse,
   type MeResponse,
+  type ProgramDetail,
+  type ProgramListResponse,
+  type UpdateProgramInput,
 } from "@podhod/schema";
 
 async function get<T>(path: string, parse: (v: unknown) => T): Promise<T> {
@@ -63,4 +71,101 @@ export function fetchExerciseCount(): Promise<CountResponse> {
  */
 export function fetchMe(): Promise<MeResponse> {
   return get("/api/me", (v) => meResponseSchema.parse(v));
+}
+
+/**
+ * Writes return either 201 with a small body or 204 with none, so this cannot
+ * unconditionally parse JSON: `res.json()` on an empty body throws a
+ * SyntaxError, which would surface to the caller as a failed mutation on a
+ * request that actually succeeded.
+ */
+async function send<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  parse?: (v: unknown) => T,
+): Promise<T | undefined> {
+  const res = await fetch(path, {
+    method,
+    headers: { "content-type": "application/json" },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  if (!res.ok) {
+    const parsed = errorResponseSchema.safeParse(await res.json().catch(() => null));
+    throw new Error(parsed.success ? parsed.data.error.code : `http_${res.status}`);
+  }
+  if (res.status === 204) return undefined;
+  const json: unknown = await res.json();
+  return parse ? parse(json) : (json as T);
+}
+
+/** Every create returns the new row's id and nothing else. */
+const createdId = (v: unknown): string => createdIdSchema.parse(v).id;
+
+export function fetchPrograms(): Promise<ProgramListResponse> {
+  return get("/api/programs", (v) => programListResponseSchema.parse(v));
+}
+
+/**
+ * `lang` is part of the request because a program's exercise names come from
+ * the library join — the program itself stores no names.
+ */
+export function fetchProgram(id: string, lang: Lang): Promise<ProgramDetail> {
+  return get(`/api/programs/${id}?lang=${lang}`, (v) => programDetailSchema.parse(v));
+}
+
+export function createProgram(input: CreateProgramInput): Promise<string | undefined> {
+  return send("POST", "/api/programs", input, createdId);
+}
+
+export function updateProgram(id: string, input: UpdateProgramInput): Promise<void> {
+  return send("PATCH", `/api/programs/${id}`, input).then(() => undefined);
+}
+
+export function deleteProgram(id: string): Promise<void> {
+  return send("DELETE", `/api/programs/${id}`).then(() => undefined);
+}
+
+export function createDay(programId: string, name: string): Promise<string | undefined> {
+  return send("POST", `/api/programs/${programId}/days`, { name }, createdId);
+}
+
+export function updateDay(dayId: string, name: string): Promise<void> {
+  return send("PATCH", `/api/programs/days/${dayId}`, { name }).then(() => undefined);
+}
+
+export function deleteDay(dayId: string): Promise<void> {
+  return send("DELETE", `/api/programs/days/${dayId}`).then(() => undefined);
+}
+
+/**
+ * The complete ordered list, not a from/to pair — the API validates the set
+ * before writing, so a partial list is refused rather than half-applied.
+ */
+export function reorderDays(programId: string, ids: string[]): Promise<void> {
+  return send("PUT", `/api/programs/${programId}/days/order`, { ids }).then(() => undefined);
+}
+
+export function addExercise(
+  dayId: string,
+  input: CreateProgramExerciseInput,
+): Promise<string | undefined> {
+  return send("POST", `/api/programs/days/${dayId}/exercises`, input, createdId);
+}
+
+export function updateExercise(
+  entryId: string,
+  input: { scheme?: unknown; restSeconds?: number | null; notes?: string | null },
+): Promise<void> {
+  return send("PATCH", `/api/programs/exercises/${entryId}`, input).then(() => undefined);
+}
+
+export function deleteExercise(entryId: string): Promise<void> {
+  return send("DELETE", `/api/programs/exercises/${entryId}`).then(() => undefined);
+}
+
+export function reorderExercises(dayId: string, ids: string[]): Promise<void> {
+  return send("PUT", `/api/programs/days/${dayId}/exercises/order`, { ids }).then(
+    () => undefined,
+  );
 }

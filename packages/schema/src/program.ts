@@ -100,3 +100,13 @@ export const programListResponseSchema = z.object({
   programs: z.array(programSummarySchema),
 });
 export type ProgramListResponse = z.infer<typeof programListResponseSchema>;
+
+/**
+ * Every create in this API answers with the new row's id and nothing else. The
+ * client needs it immediately — to open the program it just made, or to attach
+ * a scheme to the exercise it just added — and returning the whole row instead
+ * would mean assembling a joined response for a caller that is about to
+ * invalidate and refetch anyway.
+ */
+export const createdIdSchema = z.object({ id: z.string().min(1) });
+export type CreatedId = z.infer<typeof createdIdSchema>;

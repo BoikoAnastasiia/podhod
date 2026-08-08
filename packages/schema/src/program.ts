@@ -31,9 +31,6 @@ export const updateProgramSchema = z.object({
 });
 export type UpdateProgramInput = z.infer<typeof updateProgramSchema>;
 
-export const createDaySchema = z.object({ name });
-export const updateDaySchema = z.object({ name });
-
 export const createProgramExerciseSchema = z.object({
   exerciseId: id,
   scheme: schemeSchema,
@@ -66,7 +63,7 @@ export const programSummarySchema = z.object({
   isActive: z.boolean(),
   archivedAt: z.number().nullable(),
   createdAt: z.number(),
-  dayCount: z.number().int().nonnegative(),
+  exerciseCount: z.number().int().nonnegative(),
 });
 export type ProgramSummary = z.infer<typeof programSummarySchema>;
 
@@ -87,17 +84,14 @@ export const programExerciseSchema = z.object({
 });
 export type ProgramExercise = z.infer<typeof programExerciseSchema>;
 
-export const programDaySchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  position: z.number().int().nonnegative(),
-  exercises: z.array(programExerciseSchema),
-});
-export type ProgramDay = z.infer<typeof programDaySchema>;
-
+/**
+ * A program IS one workout: its exercises hang directly off it. The days tier
+ * was removed in phase 3d — the owner's mental model (one trainer's sheet per
+ * training day) makes each "day" a program of its own.
+ */
 export const programDetailSchema = programSummarySchema
-  .omit({ dayCount: true })
-  .extend({ days: z.array(programDaySchema) });
+  .omit({ exerciseCount: true })
+  .extend({ exercises: z.array(programExerciseSchema) });
 export type ProgramDetail = z.infer<typeof programDetailSchema>;
 
 export const programListResponseSchema = z.object({

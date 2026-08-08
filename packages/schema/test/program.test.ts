@@ -126,41 +126,34 @@ describe("reorderSchema", () => {
 });
 
 describe("programDetailSchema", () => {
-  it("describes a program with days and exercises", () => {
+  it("describes a program as one flat workout — exercises, no days tier", () => {
     const detail = {
       id: "p1",
-      name: "5×5",
+      name: "monday",
       notes: null,
       icon: null,
       isActive: true,
       archivedAt: null,
       createdAt: 1,
-      days: [
+      exercises: [
         {
-          id: "d1",
-          name: "Push",
+          id: "pe1",
+          exerciseId: "0001",
+          name: "bench press",
+          imagePath: "images/0001.jpg",
           position: 0,
-          exercises: [
-            {
-              id: "pe1",
-              exerciseId: "0001",
-              name: "bench press",
-              imagePath: "images/0001.jpg",
-              position: 0,
-              scheme: LINEAR,
-              restSeconds: 90,
-              notes: null,
-            },
-          ],
+          scheme: LINEAR,
+          restSeconds: 90,
+          notes: null,
         },
       ],
     };
     expect(programDetailSchema.safeParse(detail).success).toBe(true);
   });
 
-  it("does not carry dayCount, which only the summary reports", () => {
-    // The detail response already contains the days themselves; a count
+  it("does not carry exerciseCount, which only the summary reports", () => {
+    // The detail response already contains the exercises themselves; a count
     // alongside them is a second source for the same fact.
-    expect("dayCount" in programDetailSchema.shape).toBe(false);
+    expect("exerciseCount" in programDetailSchema.shape).toBe(false);
   });
 });

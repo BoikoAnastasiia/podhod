@@ -164,6 +164,11 @@ function Programs() {
       className="rounded-card border border-border bg-surface p-5"
     >
       <div className="flex flex-wrap items-center gap-3">
+        {program.icon && (
+          <span aria-hidden="true" className="text-xl">
+            {program.icon}
+          </span>
+        )}
         <Link
           to="/programs/$programId"
           params={{ programId: program.id }}
@@ -184,6 +189,17 @@ function Programs() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        {/* The name link alone proved too subtle an entrance — an explicit
+            control makes the card's main action visible. */}
+        <Link
+          to="/programs/$programId"
+          params={{ programId: program.id }}
+          className={pill}
+          data-testid="open-program"
+        >
+          {t("programs.open")}
+        </Link>
+
         <button
           type="button"
           className={pill}

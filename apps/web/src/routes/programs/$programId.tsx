@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { DayEditor } from "../../components/DayEditor.js";
+import { IconPicker } from "../../components/IconPicker.js";
 import { moved } from "../../components/ReorderButtons.js";
 import { useI18n } from "../../i18n/useI18n.js";
 import { createDay, fetchProgram, reorderDays } from "../../lib/api.js";
@@ -62,9 +63,17 @@ function ProgramDetail() {
 
       {program.isSuccess && (
         <>
-          <h1 className="mt-4 text-2xl font-semibold text-ink" data-testid="program-title">
-            {program.data.name}
-          </h1>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {program.data.icon && (
+              <span aria-hidden="true" className="text-2xl" data-testid="program-icon">
+                {program.data.icon}
+              </span>
+            )}
+            <h1 className="text-2xl font-semibold text-ink" data-testid="program-title">
+              {program.data.name}
+            </h1>
+            <IconPicker programId={programId} current={program.data.icon} />
+          </div>
 
           <button
             type="button"
@@ -77,9 +86,10 @@ function ProgramDetail() {
           </button>
 
           {days.length === 0 ? (
-            <p className="mt-8 text-muted" data-testid="days-empty">
-              {t("programs.dayCount.zero")}
-            </p>
+            <div className="mt-8" data-testid="days-empty">
+              <p className="text-muted">{t("programs.dayCount.zero")}</p>
+              <p className="mt-1 text-sm text-muted">{t("days.emptyHint")}</p>
+            </div>
           ) : (
             <ul className="mt-8 flex flex-col gap-4">
               {days.map((day, index) => (

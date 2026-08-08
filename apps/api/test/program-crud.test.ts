@@ -52,6 +52,26 @@ describe("program CRUD", () => {
     expect(res.status).toBe(400);
   });
 
+  it("stores, changes and clears an icon", async () => {
+    const res = await client.post("/api/programs", { name: "iconed", icon: "🦵" });
+    expect(res.status).toBe(201);
+    const { id } = await client.json<{ id: string }>(res);
+    expect((await find(id)).icon).toBe("🦵");
+
+    expect((await client.patch(`/api/programs/${id}`, { icon: "🍑" })).status).toBe(204);
+    expect((await find(id)).icon).toBe("🍑");
+
+    // null clears rather than being ignored — "no icon" is a state someone
+    // chooses, not the absence of a choice.
+    expect((await client.patch(`/api/programs/${id}`, { icon: null })).status).toBe(204);
+    expect((await find(id)).icon).toBeNull();
+  });
+
+  it("defaults the icon to null when a create does not send one", async () => {
+    const id = await create("plain");
+    expect((await find(id)).icon).toBeNull();
+  });
+
   it("renames a program", async () => {
     const id = await create("old name");
     expect((await client.patch(`/api/programs/${id}`, { name: "new name" })).status).toBe(204);

@@ -78,6 +78,7 @@ export const programRoutes = new Hono<AuthedEnv>()
         id: programs.id,
         name: programs.name,
         notes: programs.notes,
+        icon: programs.icon,
         isActive: programs.isActive,
         archivedAt: programs.archivedAt,
         createdAt: programs.createdAt,
@@ -107,6 +108,7 @@ export const programRoutes = new Hono<AuthedEnv>()
       userId: c.get("session").user.id,
       name: parsed.data.name,
       notes: parsed.data.notes ?? null,
+      icon: parsed.data.icon ?? null,
       isActive: 0,
       createdAt: now(),
     });
@@ -123,10 +125,11 @@ export const programRoutes = new Hono<AuthedEnv>()
     const existing = await findOwnedProgram(db, userId, c.req.param("id"));
     if (!existing) return c.json(fail("not_found", "no such program"), 404);
 
-    const { name, notes, isActive, archived } = parsed.data;
+    const { name, notes, icon, isActive, archived } = parsed.data;
     const patch: Record<string, unknown> = {};
     if (name !== undefined) patch.name = name;
     if (notes !== undefined) patch.notes = notes ?? null;
+    if (icon !== undefined) patch.icon = icon ?? null;
 
     /**
      * Archiving always clears `isActive`. An archived program still flagged
@@ -278,6 +281,7 @@ export const programRoutes = new Hono<AuthedEnv>()
         id: program.id,
         name: program.name,
         notes: program.notes,
+        icon: program.icon,
         isActive: program.isActive === 1,
         archivedAt: program.archivedAt,
         createdAt: program.createdAt,

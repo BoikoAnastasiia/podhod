@@ -10,8 +10,10 @@ const name = z.string().trim().min(1).max(80);
 const notes = z.string().trim().max(2000).nullish();
 const id = z.string().min(1).max(64);
 const restSeconds = z.number().int().min(0).max(3600).nullish();
+// 16 chars fits any single emoji, including ZWJ sequences like 🏋️‍♀️.
+const icon = z.string().trim().min(1).max(16).nullish();
 
-export const createProgramSchema = z.object({ name, notes });
+export const createProgramSchema = z.object({ name, notes, icon });
 export type CreateProgramInput = z.infer<typeof createProgramSchema>;
 
 /**
@@ -23,6 +25,7 @@ export type CreateProgramInput = z.infer<typeof createProgramSchema>;
 export const updateProgramSchema = z.object({
   name: name.optional(),
   notes,
+  icon,
   isActive: z.boolean().optional(),
   archived: z.boolean().optional(),
 });
@@ -59,6 +62,7 @@ export const programSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
   notes: z.string().nullable(),
+  icon: z.string().nullable(),
   isActive: z.boolean(),
   archivedAt: z.number().nullable(),
   createdAt: z.number(),

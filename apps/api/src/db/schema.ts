@@ -105,6 +105,8 @@ export const programs = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     notes: text("notes"),
+    /** A single emoji, or null for no icon. Display-only; never searched. */
+    icon: text("icon"),
     isActive: integer("is_active").notNull().default(0),
     createdAt: integer("created_at").notNull(),
     archivedAt: integer("archived_at"),

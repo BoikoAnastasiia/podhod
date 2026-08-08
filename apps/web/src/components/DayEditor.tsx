@@ -2,15 +2,24 @@ import type {
   CreateProgramExerciseInput,
   ExerciseListItem,
   ProgramDay,
+  SchemeInput,
 } from "@podhod/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
-import { addExercise, deleteDay, updateDay } from "../lib/api.js";
+import {
+  addExercise,
+  deleteDay,
+  deleteExercise,
+  reorderExercises,
+  updateDay,
+  updateExercise,
+} from "../lib/api.js";
 import { programKeys } from "../lib/programKeys.js";
 import { ExercisePicker } from "./ExercisePicker.js";
-import { ReorderButtons } from "./ReorderButtons.js";
+import { moved, ReorderButtons } from "./ReorderButtons.js";
 import { SCHEME_DEFAULTS, SchemeEditor } from "./SchemeEditor.js";
+import { SchemeSummary } from "./SchemeSummary.js";
 
 /**
  * The add flow is a two-step state machine — pick an exercise, then configure
@@ -48,6 +57,9 @@ export function DayEditor({
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [adding, setAdding] = useState<Adding>(null);
+  /** Which entry's scheme is open in an editor, and which is one click from removal. */
+  const [editingScheme, setEditingScheme] = useState<string | null>(null);
+  const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
 
   /**
    * Invalidating `all` rather than just the program's detail key: adding or
@@ -77,6 +89,33 @@ export function DayEditor({
       await invalidate();
     },
   });
+
+  const updateEntry = useMutation({
+    mutationFn: (input: { id: string; scheme: SchemeInput }) =>
+      updateExercise(input.id, { scheme: input.scheme }),
+    onSuccess: async () => {
+      setEditingScheme(null);
+      await invalidate();
+    },
+  });
+
+  const removeEntry = useMutation({
+    mutationFn: (id: string) => deleteExercise(id),
+    onSuccess: async () => {
+      setConfirmingRemove(null);
+      await invalidate();
+    },
+  });
+
+  const reorderEntries = useMutation({
+    mutationFn: (ids: string[]) => reorderExercises(day.id, ids),
+    onSuccess: invalidate,
+  });
+
+  const moveExercise = (from: number, to: number) => {
+    const ids = moved(day.exercises, from, to).map((entry) => entry.id);
+    reorderEntries.mutate(ids);
+  };
 
   return (
     <li
@@ -172,13 +211,85 @@ export function DayEditor({
         </p>
       ) : (
         <ul className="mt-4 flex flex-col gap-2">
-          {day.exercises.map((entry) => (
+          {day.exercises.map((entry, entryIndex) => (
             <li
               key={entry.id}
               data-testid="day-exercise"
-              className="flex min-h-row-min items-center gap-3 rounded-row border border-border px-3 text-sm text-ink"
+              data-entry-position={entry.position}
+              className="rounded-row border border-border px-3 py-2 text-sm text-ink"
             >
-              {entry.name}
+              <div className="flex min-h-row-min flex-wrap items-center justify-between gap-2">
+                <span className="flex flex-col">
+                  <span className="font-medium" data-testid="entry-name">
+                    {entry.name}
+                  </span>
+                  <SchemeSummary scheme={entry.scheme} />
+                </span>
+                <span className="flex flex-wrap items-center gap-2">
+                  <ReorderButtons
+                    index={entryIndex}
+                    count={day.exercises.length}
+                    upLabel={t("entry.moveUp").replace("{name}", entry.name)}
+                    downLabel={t("entry.moveDown").replace("{name}", entry.name)}
+                    onMove={moveExercise}
+                  />
+                  <button
+                    type="button"
+                    className={pill}
+                    data-testid="edit-entry"
+                    onClick={() =>
+                      setEditingScheme(editingScheme === entry.id ? null : entry.id)
+                    }
+                  >
+                    {t("entry.edit")}
+                  </button>
+                  {confirmingRemove === entry.id ? (
+                    <>
+                      <button
+                        type="button"
+                        className={`${pill} border-error text-error`}
+                        data-testid="confirm-remove-entry"
+                        onClick={() => removeEntry.mutate(entry.id)}
+                      >
+                        {t("entry.remove.confirm")}
+                      </button>
+                      <button
+                        type="button"
+                        className={pill}
+                        onClick={() => setConfirmingRemove(null)}
+                      >
+                        {t("days.cancel")}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className={pill}
+                      data-testid="remove-entry"
+                      onClick={() => setConfirmingRemove(entry.id)}
+                    >
+                      {t("entry.remove")}
+                    </button>
+                  )}
+                </span>
+              </div>
+
+              {editingScheme === entry.id && (
+                <div className="mt-3 border-t border-border pt-3">
+                  {updateEntry.isError && (
+                    <p role="alert" className="mb-2 text-sm text-error">
+                      {t("entry.updateFailed")}
+                    </p>
+                  )}
+                  <SchemeEditor
+                    initial={entry.scheme}
+                    submitLabel={t("entry.save")}
+                    pending={updateEntry.isPending}
+                    onSubmit={(scheme) => updateEntry.mutate({ id: entry.id, scheme })}
+                    onCancel={() => setEditingScheme(null)}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ul>

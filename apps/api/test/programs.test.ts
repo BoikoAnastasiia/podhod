@@ -64,30 +64,22 @@ describe("the one-active-program rule", () => {
 });
 
 describe("program cascades", () => {
-  it("removes a program's days and their exercises when the program goes", async () => {
+  it("removes a program's exercises when the program goes", async () => {
     await env.DB.prepare(
       "INSERT INTO exercises (id, body_part, equipment, target, muscle_group, secondary_muscles, media_id, image_path, gif_path) VALUES ('e1','waist','body weight','abs','core','[]','m','i.jpg','g.gif')",
     ).run();
     await insertProgram("p-cascade", "user-2", 0);
     await env.DB.prepare(
-      "INSERT INTO program_days (id, program_id, position, name) VALUES ('d1','p-cascade',0,'Push')",
-    ).run();
-    await env.DB.prepare(
-      "INSERT INTO program_exercises (id, program_day_id, exercise_id, position, scheme_type, scheme_config) VALUES ('pe1','d1','e1',0,'fixed','{}')",
+      "INSERT INTO program_exercises (id, program_id, exercise_id, position, scheme_type, scheme_config) VALUES ('pe1','p-cascade','e1',0,'fixed','{}')",
     ).run();
 
     await env.DB.prepare("DELETE FROM programs WHERE id = 'p-cascade'").run();
 
-    const days = await env.DB.prepare(
-      "SELECT id FROM program_days WHERE program_id = 'p-cascade'",
-    ).all();
     const entries = await env.DB.prepare(
-      "SELECT id FROM program_exercises WHERE program_day_id = 'd1'",
+      "SELECT id FROM program_exercises WHERE program_id = 'p-cascade'",
     ).all();
-    // Two levels of cascade: the day goes with the program, and the exercise
-    // goes with the day. Without the second, deleting a program would leave
-    // orphaned program_exercises rows pointing at nothing.
-    expect(days.results).toHaveLength(0);
+    // Without the cascade, deleting a program would leave orphaned
+    // program_exercises rows pointing at nothing.
     expect(entries.results).toHaveLength(0);
   });
 });

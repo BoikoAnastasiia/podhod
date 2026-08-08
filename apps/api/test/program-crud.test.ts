@@ -35,11 +35,11 @@ describe("program CRUD", () => {
     expect(program).toMatchObject({ name: "5×5", isActive: false, archivedAt: null });
   });
 
-  it("reports a day count of zero for a program with no days", async () => {
+  it("reports an exercise count of zero for a program with no exercises", async () => {
     // A LEFT JOIN with COUNT over a missing child famously returns 1 when the
     // count is taken over the joined table's *row* rather than a column.
     const id = await create("empty");
-    expect((await find(id)).dayCount).toBe(0);
+    expect((await find(id)).exerciseCount).toBe(0);
   });
 
   it("rejects a program with no name", async () => {

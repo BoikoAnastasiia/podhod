@@ -114,19 +114,6 @@ export const programs = sqliteTable(
   (t) => [index("idx_programs_user").on(t.userId)],
 );
 
-export const programDays = sqliteTable(
-  "program_days",
-  {
-    id: text("id").primaryKey(),
-    programId: text("program_id")
-      .notNull()
-      .references(() => programs.id, { onDelete: "cascade" }),
-    position: integer("position").notNull(),
-    name: text("name").notNull(),
-  },
-  (t) => [index("idx_program_days_program").on(t.programId, t.position)],
-);
-
 /**
  * `schemeConfig` is TEXT holding JSON rather than a column per scheme field:
  * the four schemes share almost nothing, so columns would be mostly NULL and
@@ -142,9 +129,11 @@ export const programExercises = sqliteTable(
   "program_exercises",
   {
     id: text("id").primaryKey(),
-    programDayId: text("program_day_id")
+    // Directly on the program — a program IS one workout (phase 3d); the
+    // days tier between them was removed by migration 0004.
+    programId: text("program_id")
       .notNull()
-      .references(() => programDays.id, { onDelete: "cascade" }),
+      .references(() => programs.id, { onDelete: "cascade" }),
     exerciseId: text("exercise_id")
       .notNull()
       .references(() => exercises.id),
@@ -154,5 +143,5 @@ export const programExercises = sqliteTable(
     restSeconds: integer("rest_seconds"),
     notes: text("notes"),
   },
-  (t) => [index("idx_program_exercises_day").on(t.programDayId, t.position)],
+  (t) => [index("idx_program_exercises_program").on(t.programId, t.position)],
 );

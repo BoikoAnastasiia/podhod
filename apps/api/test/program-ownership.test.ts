@@ -7,10 +7,9 @@ import { api, jsonHeaders, LINEAR, ORIGIN, setUpSchema, signUpAs } from "./progr
 /**
  * The security property of this phase, in one place.
  *
- * Two users. Alice owns a program, a day and an exercise entry. Bob then calls
- * every id-bearing route with Alice's ids; all must answer **404** — not 403,
- * which would confirm the row exists and belongs to somebody, and certainly
- * not 200.
+ * Two users. Alice owns a program and an exercise entry. Bob then calls every
+ * id-bearing route with Alice's ids; all must answer **404** — not 403, which
+ * would confirm the row exists and belongs to somebody, and certainly not 200.
  *
  * The routes are a list rather than a case each, so the list itself is the
  * coverage claim — and the final test checks that claim against the router, so
@@ -18,7 +17,7 @@ import { api, jsonHeaders, LINEAR, ORIGIN, setUpSchema, signUpAs } from "./progr
  */
 let alice: ReturnType<typeof api>;
 let bob: ReturnType<typeof api>;
-let aliceIds: { programId: string; dayId: string; entryId: string };
+let aliceIds: { programId: string; entryId: string };
 
 beforeAll(async () => {
   await setUpSchema(["e1"]);
@@ -27,16 +26,13 @@ beforeAll(async () => {
   const program = await alice.json<{ id: string }>(
     await alice.post("/api/programs", { name: "Alice's program" }),
   );
-  const day = await alice.json<{ id: string }>(
-    await alice.post(`/api/programs/${program.id}/days`, { name: "Alice's day" }),
-  );
   const entry = await alice.json<{ id: string }>(
-    await alice.post(`/api/programs/days/${day.id}/exercises`, {
+    await alice.post(`/api/programs/${program.id}/exercises`, {
       exerciseId: "e1",
       scheme: LINEAR,
     }),
   );
-  aliceIds = { programId: program.id, dayId: day.id, entryId: entry.id };
+  aliceIds = { programId: program.id, entryId: entry.id };
 
   bob = api(await signUpAs("bob@example.com"));
 });
@@ -61,14 +57,10 @@ const OWNED_ROUTES: {
 }[] = [
   { method: "GET", pattern: "/:id", path: (i) => `/api/programs/${i.programId}` },
   { method: "PATCH", pattern: "/:id", path: (i) => `/api/programs/${i.programId}`, body: { name: "x" } },
-  { method: "POST", pattern: "/:id/days", path: (i) => `/api/programs/${i.programId}/days`, body: { name: "x" } },
-  { method: "PUT", pattern: "/:id/days/order", path: (i) => `/api/programs/${i.programId}/days/order`, body: { ids: ["x"] } },
-  { method: "PATCH", pattern: "/days/:dayId", path: (i) => `/api/programs/days/${i.dayId}`, body: { name: "x" } },
-  { method: "POST", pattern: "/days/:dayId/exercises", path: (i) => `/api/programs/days/${i.dayId}/exercises`, body: { exerciseId: "e1", scheme: LINEAR } },
-  { method: "PUT", pattern: "/days/:dayId/exercises/order", path: (i) => `/api/programs/days/${i.dayId}/exercises/order`, body: { ids: ["x"] } },
+  { method: "POST", pattern: "/:id/exercises", path: (i) => `/api/programs/${i.programId}/exercises`, body: { exerciseId: "e1", scheme: LINEAR } },
+  { method: "PUT", pattern: "/:id/exercises/order", path: (i) => `/api/programs/${i.programId}/exercises/order`, body: { ids: ["x"] } },
   { method: "PATCH", pattern: "/exercises/:entryId", path: (i) => `/api/programs/exercises/${i.entryId}`, body: { notes: "x" } },
   { method: "DELETE", pattern: "/exercises/:entryId", path: (i) => `/api/programs/exercises/${i.entryId}` },
-  { method: "DELETE", pattern: "/days/:dayId", path: (i) => `/api/programs/days/${i.dayId}` },
   { method: "DELETE", pattern: "/:id", path: (i) => `/api/programs/${i.programId}` },
 ];
 
@@ -97,10 +89,8 @@ describe("another user's rows are invisible", () => {
       await alice.get(`/api/programs/${aliceIds.programId}`),
     );
     expect(detail.name).toBe("Alice's program");
-    expect(detail.days).toHaveLength(1);
-    expect(detail.days[0]?.name).toBe("Alice's day");
-    expect(detail.days[0]?.exercises).toHaveLength(1);
-    expect(detail.days[0]?.exercises[0]?.id).toBe(aliceIds.entryId);
+    expect(detail.exercises).toHaveLength(1);
+    expect(detail.exercises[0]?.id).toBe(aliceIds.entryId);
   });
 });
 

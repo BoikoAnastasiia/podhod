@@ -1,10 +1,10 @@
 import { and, eq } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { programDays, programExercises, programs } from "../db/schema.js";
+import { programExercises, programs } from "../db/schema.js";
 
 /**
  * Every id that arrives in a request is attacker-controlled, including the ones
- * that look internal — `programDayId` is as much user input as `name` is. These
+ * that look internal — an entry id is as much user input as `name` is. These
  * helpers are the only sanctioned way to turn one into a row: each joins back
  * to `programs` and filters on the session's own user id, so a row belonging to
  * somebody else is simply not found.
@@ -31,16 +31,6 @@ export async function findOwnedProgram(
   return row;
 }
 
-export async function findOwnedDay(db: DrizzleD1Database, userId: string, dayId: string) {
-  const [row] = await db
-    .select({ day: programDays })
-    .from(programDays)
-    .innerJoin(programs, eq(programDays.programId, programs.id))
-    .where(and(eq(programDays.id, dayId), eq(programs.userId, userId)))
-    .limit(1);
-  return row?.day;
-}
-
 export async function findOwnedProgramExercise(
   db: DrizzleD1Database,
   userId: string,
@@ -49,8 +39,7 @@ export async function findOwnedProgramExercise(
   const [row] = await db
     .select({ entry: programExercises })
     .from(programExercises)
-    .innerJoin(programDays, eq(programExercises.programDayId, programDays.id))
-    .innerJoin(programs, eq(programDays.programId, programs.id))
+    .innerJoin(programs, eq(programExercises.programId, programs.id))
     .where(and(eq(programExercises.id, entryId), eq(programs.userId, userId)))
     .limit(1);
   return row?.entry;

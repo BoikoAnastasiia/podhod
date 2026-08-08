@@ -26,12 +26,12 @@ test("/programs redirects to sign-in when signed out", async ({ page }) => {
 });
 
 /**
- * The whole hand-building path as one flow, on a desktop viewport: creating a
- * program drops straight into its editor as a dialog over the list, days and
- * exercises are one click each, and a reload restores the open dialog from
- * the URL — the editor's state lives in `?program=`, not in component memory.
+ * The whole flow on a desktop viewport: a program is one workout. Creating
+ * one drops straight into its editor as a dialog over the list, each picked
+ * exercise lands instantly as 4×10 with an editable weight, and a reload
+ * restores both the server state and the open dialog from `?program=`.
  */
-test("builds a program from nothing", async ({ page }) => {
+test("builds a workout from nothing", async ({ page }) => {
   await signUp(page, "programs-build");
 
   await page.goto("/programs");
@@ -40,58 +40,55 @@ test("builds a program from nothing", async ({ page }) => {
   await expect(page.getByTestId("template-gallery")).toBeVisible();
 
   // Creating opens the editor immediately — no hunting for the new card.
-  await page.getByTestId("program-name").fill("Full Body");
+  await page.getByTestId("program-name").fill("monday");
   await page.getByTestId("create-program").click();
   await expect(page.getByTestId("program-dialog")).toBeVisible();
-  await expect(page.getByTestId("program-title")).toHaveText("Full Body");
+  await expect(page.getByTestId("program-title")).toHaveText("monday");
   await expect(page).toHaveURL(/\?program=/);
+  await expect(page.getByTestId("entries-empty")).toBeVisible();
 
-  // Days arrive named, no form.
-  await page.getByTestId("add-day").click();
-  await expect(page.getByTestId("day-name").first()).toHaveText("Day 1");
-  await page.getByTestId("add-day").click();
-  await expect(page.getByTestId("day-card")).toHaveCount(2);
+  // Three exercises through one picker session — instant adds, panel open.
+  await page.getByTestId("add-exercise").click();
+  await page.getByTestId("picker-search").fill("push");
+  await page.getByTestId("picker-result").first().click();
+  await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+  // The instant add is the trainer's default: 4 sets, weight in front of you.
+  await expect(page.getByTestId("entry-weight").first()).toHaveValue("20");
 
-  // Two exercises through one picker session — instant adds, panel stays open.
-  const day1 = page.getByTestId("day-card").filter({ hasText: "Day 1" });
-  await day1.getByTestId("add-exercise").click();
-  await day1.getByTestId("picker-search").fill("push");
-  await day1.getByTestId("picker-result").first().click();
-  await expect(day1.getByTestId("day-exercise")).toHaveCount(1);
-  // The default linear summary renders its deload as a whole percentage —
-  // proof the fraction↔percent boundary conversion ran on the instant add.
-  await expect(day1.getByTestId("scheme-summary").first()).toContainText("10%");
-  await day1.getByTestId("picker-search").fill("curl");
-  await day1.getByTestId("picker-result").first().click();
-  await expect(day1.getByTestId("day-exercise")).toHaveCount(2);
-  await day1.getByTestId("picker-close").click();
+  await page.getByTestId("picker-search").fill("curl");
+  await page.getByTestId("picker-result").first().click();
+  await expect(page.getByTestId("day-exercise")).toHaveCount(2);
 
-  // Day 2 picks through the body-part chips instead of typing — the same
-  // filter taxonomy the library uses, wired to the same API parameter.
-  const day2 = page.getByTestId("day-card").filter({ hasText: "Day 2" });
-  await day2.getByTestId("add-exercise").click();
-  await day2.getByRole("button", { name: "upper legs", exact: true }).click();
-  await expect(day2.getByTestId("picker-result").first()).toBeVisible();
-  await day2.getByTestId("picker-search").fill("squat");
-  await day2.getByTestId("picker-result").first().click();
-  await expect(day2.getByTestId("day-exercise")).toHaveCount(1);
+  // The body-part chips filter the picker the same way the library filters.
+  await page.getByRole("button", { name: "upper legs", exact: true }).click();
+  await page.getByTestId("picker-search").fill("squat");
+  await page.getByTestId("picker-result").first().click();
+  await expect(page.getByTestId("day-exercise")).toHaveCount(3);
+  await page.getByTestId("picker-close").click();
 
-  // Reorder by the day-level control's accessible name — the entry rows carry
-  // reorder buttons of their own, so a bare move-down testid is ambiguous.
-  await page.getByRole("button", { name: "Move Day 1 later" }).click();
-  await expect(page.getByTestId("day-name").first()).toHaveText("Day 2");
+  // The weight commits from the row — no form, no dialog.
+  const firstWeight = page.getByTestId("day-exercise").first().getByTestId("entry-weight");
+  await firstWeight.fill("45");
+  await firstWeight.press("Enter");
+  await expect(firstWeight).toHaveValue("45");
 
-  // A reload must restore both the server state and the open dialog.
+  // Reorder from the row's own controls; the order is server state.
+  const firstName = await page.getByTestId("entry-name").first().textContent();
+  await page.getByTestId("day-exercise").first().getByTestId("move-down").click();
+  await expect(page.getByTestId("entry-name").first()).not.toHaveText(firstName ?? "");
+
+  // A reload must restore the dialog, the order, and the edited weight.
   await page.reload();
   await expect(page.getByTestId("program-dialog")).toBeVisible();
-  await expect(page.getByTestId("day-name").first()).toHaveText("Day 2");
-  await expect(page.getByTestId("day-name").nth(1)).toHaveText("Day 1");
   await expect(page.getByTestId("day-exercise")).toHaveCount(3);
+  await expect(page.getByTestId("entry-name").first()).not.toHaveText(firstName ?? "");
+  await expect(page.getByTestId("entry-weight").nth(1)).toHaveValue("45");
 
-  // Closing lands back on the list, where the card can be activated.
+  // Closing lands back on the list, which counts what was just built.
   await page.getByTestId("close-program-dialog").click();
   await expect(page).toHaveURL(/\/programs$/);
-  const card = page.getByTestId("program-card").filter({ hasText: "Full Body" });
+  const card = page.getByTestId("program-card").filter({ hasText: "monday" });
+  await expect(card).toContainText("3 exercises");
   await card.getByTestId("toggle-active").click();
   await expect(card.getByTestId("active-badge")).toBeVisible();
 });
@@ -130,28 +127,26 @@ test("an added exercise's scheme can be edited and the entry removed", async ({ 
   await page.getByTestId("create-program").click();
   await expect(page.getByTestId("program-dialog")).toBeVisible();
 
-  await page.getByTestId("add-day").click();
-  const day = page.getByTestId("day-card").filter({ hasText: "Day 1" });
-  await expect(day).toBeVisible();
+  await page.getByTestId("add-exercise").click();
+  await page.getByTestId("picker-search").fill("squat");
+  await page.getByTestId("picker-result").first().click();
+  await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+  await page.getByTestId("picker-close").click();
 
-  await day.getByTestId("add-exercise").click();
-  await day.getByTestId("picker-search").fill("squat");
-  await day.getByTestId("picker-result").first().click();
-  await expect(day.getByTestId("day-exercise")).toHaveCount(1);
-  await day.getByTestId("picker-close").click();
-
-  // Edit: switch the entry from the default linear to RPE, summary follows.
-  await day.getByTestId("edit-entry").click();
-  await day.getByTestId("scheme-kind-rpe").click();
-  await day.getByTestId("scheme-submit").click();
-  await expect(day.getByTestId("scheme-summary")).toContainText("RPE");
+  // Edit: switch the entry from the default fixed scheme to RPE; the inline
+  // weight field gives way to the scheme summary, which only RPE renders.
+  await page.getByTestId("edit-entry").click();
+  await page.getByTestId("scheme-kind-rpe").click();
+  await page.getByTestId("scheme-submit").click();
+  await expect(page.getByTestId("scheme-summary")).toContainText("RPE");
+  await expect(page.getByTestId("entry-weight")).toHaveCount(0);
 
   // Remove asks first — the first click must not delete anything.
-  await day.getByTestId("remove-entry").click();
-  await expect(day.getByTestId("day-exercise")).toHaveCount(1);
-  await day.getByTestId("confirm-remove-entry").click();
-  await expect(day.getByTestId("day-exercise")).toHaveCount(0);
-  await expect(day.getByTestId("day-empty")).toBeVisible();
+  await page.getByTestId("remove-entry").click();
+  await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+  await page.getByTestId("confirm-remove-entry").click();
+  await expect(page.getByTestId("day-exercise")).toHaveCount(0);
+  await expect(page.getByTestId("entries-empty")).toBeVisible();
 
   // Escape is the native dialog's own close path — it must clear the URL too.
   await page.keyboard.press("Escape");
@@ -159,7 +154,7 @@ test("an added exercise's scheme can be edited and the entry removed", async ({ 
   await expect(page).toHaveURL(/\/programs$/);
 });
 
-test("taking a template yields a full editable program with its icon", async ({ page }) => {
+test("taking a template yields a full editable workout with its icon", async ({ page }) => {
   await signUp(page, "programs-template");
   await page.goto("/programs");
 
@@ -168,7 +163,6 @@ test("taking a template yields a full editable program with its icon", async ({ 
   await expect(page.getByTestId("program-dialog")).toBeVisible();
   await expect(page.getByTestId("program-title")).toHaveText("Leg Day");
   await expect(page.getByTestId("program-icon")).toHaveText("🦵");
-  await expect(page.getByTestId("day-card")).toHaveCount(1);
   await expect(page.getByTestId("day-exercise")).toHaveCount(5);
 
   // It is an ordinary program: delete an entry to prove it's editable.
@@ -201,7 +195,9 @@ test.describe("on a phone viewport", () => {
     await expect(page).toHaveURL(/\/programs\/[A-Za-z0-9_-]+$/);
     await expect(page.getByTestId("program-dialog")).toHaveCount(0);
     await expect(page.getByTestId("program-title")).toHaveText("Phone Plan");
-    await page.getByTestId("add-day").click();
-    await expect(page.getByTestId("day-name").first()).toHaveText("Day 1");
+    await page.getByTestId("add-exercise").click();
+    await page.getByTestId("picker-search").fill("push");
+    await page.getByTestId("picker-result").first().click();
+    await expect(page.getByTestId("day-exercise")).toHaveCount(1);
   });
 });

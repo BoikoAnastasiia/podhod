@@ -15,6 +15,18 @@ const NAV_ITEMS = [{ to: "/library", labelKey: "nav.library" }] as const satisfi
   labelKey: DictKey;
 }[];
 
+/**
+ * Destinations that only exist for a signed-in visitor. Kept apart from
+ * NAV_ITEMS rather than filtered out of it, because "public" and "requires a
+ * session" is exactly the distinction the library route depends on staying
+ * explicit — the library is public by design and must never drift into this
+ * list.
+ */
+const SESSION_NAV_ITEMS = [{ to: "/programs", labelKey: "nav.programs" }] as const satisfies {
+  to: string;
+  labelKey: DictKey;
+}[];
+
 const pillLink =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
 
@@ -50,6 +62,19 @@ export function Nav() {
           {t(item.labelKey)}
         </Link>
       ))}
+      {!isPending &&
+        session &&
+        SESSION_NAV_ITEMS.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={pillLink}
+            activeProps={{ className: "border-transparent bg-chip-hover text-ink font-semibold" }}
+            inactiveProps={{ className: "text-muted" }}
+          >
+            {t(item.labelKey)}
+          </Link>
+        ))}
       {!isPending &&
         (session ? (
           <>

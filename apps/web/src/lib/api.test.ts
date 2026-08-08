@@ -143,6 +143,7 @@ describe("fetchProgram", () => {
       id: "p1",
       name: "5×5",
       notes: null,
+      icon: null,
       isActive: false,
       archivedAt: null,
       createdAt: 1,

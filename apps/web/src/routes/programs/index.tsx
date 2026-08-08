@@ -100,6 +100,17 @@ function Programs() {
   }, [openProgramId, navigate]);
 
   const closeDialog = () => void navigate({ to: "/programs", search: {} });
+
+  /**
+   * The one opening rule: every way into a program — creating one, taking a
+   * template, «Открыть» — lands in the editor, framed for the viewport.
+   * Desktop stays on the list with the editor as a dialog; a phone gets the
+   * full page, where a dialog would cram the whole builder into a keyhole.
+   */
+  const openProgram = (id: string) =>
+    window.matchMedia(DESKTOP).matches
+      ? void navigate({ to: "/programs", search: { program: id } })
+      : void navigate({ to: "/programs/$programId", params: { programId: id } });
   const [createError, setCreateError] = useState(false);
   /** Which program is one click from deletion. See the delete control below. */
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
@@ -117,10 +128,13 @@ function Programs() {
 
   const create = useMutation({
     mutationFn: (programName: string) => createProgram({ name: programName, notes: null }),
-    onSuccess: async () => {
+    onSuccess: async (created) => {
       setName("");
       setCreateError(false);
       await invalidate();
+      // Creating and then hunting for what you created was the complaint that
+      // shaped this screen: a new program opens its editor immediately.
+      if (created) openProgram(created);
     },
     onError: () => setCreateError(true),
   });
@@ -144,7 +158,7 @@ function Programs() {
     mutationFn: (template: ProgramTemplate) => materializeTemplate(template, lang),
     onSuccess: async (programId) => {
       await invalidate();
-      await navigate({ to: "/programs/$programId", params: { programId } });
+      openProgram(programId);
     },
   });
 
@@ -253,14 +267,14 @@ function Programs() {
       <div className="mt-4 flex flex-wrap gap-2">
         {/* The name link alone proved too subtle an entrance — an explicit
             control makes the card's main action visible. */}
-        <Link
-          to="/programs/$programId"
-          params={{ programId: program.id }}
+        <button
+          type="button"
           className={pill}
           data-testid="open-program"
+          onClick={() => openProgram(program.id)}
         >
           {t("programs.open")}
-        </Link>
+        </button>
 
         <button
           type="button"

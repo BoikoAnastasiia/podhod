@@ -26,11 +26,10 @@ test("/programs redirects to sign-in when signed out", async ({ page }) => {
 });
 
 /**
- * The whole hand-building path as one flow, because the individual pieces
- * passing does not prove they compose: create a program, activate it, add
- * days with one click, add exercises with one tap each — two through a single
- * picker session, proving the panel stays open — reorder the days, then
- * reload and assert against the server's answer, not the local cache's.
+ * The whole hand-building path as one flow, on a desktop viewport: creating a
+ * program drops straight into its editor as a dialog over the list, days and
+ * exercises are one click each, and a reload restores the open dialog from
+ * the URL — the editor's state lives in `?program=`, not in component memory.
  */
 test("builds a program from nothing", async ({ page }) => {
   await signUp(page, "programs-build");
@@ -40,17 +39,12 @@ test("builds a program from nothing", async ({ page }) => {
   // The empty state leads with the ready-made programs.
   await expect(page.getByTestId("template-gallery")).toBeVisible();
 
+  // Creating opens the editor immediately — no hunting for the new card.
   await page.getByTestId("program-name").fill("Full Body");
   await page.getByTestId("create-program").click();
-  const card = page.getByTestId("program-card").filter({ hasText: "Full Body" });
-  await expect(card).toBeVisible();
-
-  await card.getByTestId("toggle-active").click();
-  await expect(card.getByTestId("active-badge")).toBeVisible();
-
-  // The explicit entrance, not the name link.
-  await card.getByTestId("open-program").click();
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
   await expect(page.getByTestId("program-title")).toHaveText("Full Body");
+  await expect(page).toHaveURL(/\?program=/);
 
   // Days arrive named, no form.
   await page.getByTestId("add-day").click();
@@ -83,12 +77,19 @@ test("builds a program from nothing", async ({ page }) => {
   await page.getByRole("button", { name: "Move Day 1 later" }).click();
   await expect(page.getByTestId("day-name").first()).toHaveText("Day 2");
 
-  // The order must survive a round trip to the server, not just live in the
-  // cache the mutation invalidated.
+  // A reload must restore both the server state and the open dialog.
   await page.reload();
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
   await expect(page.getByTestId("day-name").first()).toHaveText("Day 2");
   await expect(page.getByTestId("day-name").nth(1)).toHaveText("Day 1");
   await expect(page.getByTestId("day-exercise")).toHaveCount(3);
+
+  // Closing lands back on the list, where the card can be activated.
+  await page.getByTestId("close-program-dialog").click();
+  await expect(page).toHaveURL(/\/programs$/);
+  const card = page.getByTestId("program-card").filter({ hasText: "Full Body" });
+  await card.getByTestId("toggle-active").click();
+  await expect(card.getByTestId("active-badge")).toBeVisible();
 });
 
 test("activating a second program deactivates the first in the UI", async ({ page }) => {
@@ -98,6 +99,9 @@ test("activating a second program deactivates the first in the UI", async ({ pag
   for (const name of ["First", "Second"]) {
     await page.getByTestId("program-name").fill(name);
     await page.getByTestId("create-program").click();
+    // Each create opens its editor; close it to get back to the list.
+    await expect(page.getByTestId("program-dialog")).toBeVisible();
+    await page.getByTestId("close-program-dialog").click();
     await expect(page.getByTestId("program-card").filter({ hasText: name })).toBeVisible();
   }
 
@@ -120,7 +124,7 @@ test("an added exercise's scheme can be edited and the entry removed", async ({ 
 
   await page.getByTestId("program-name").fill("Edit Me");
   await page.getByTestId("create-program").click();
-  await page.getByTestId("open-program").click();
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
 
   await page.getByTestId("add-day").click();
   const day = page.getByTestId("day-card").filter({ hasText: "Day 1" });
@@ -144,6 +148,11 @@ test("an added exercise's scheme can be edited and the entry removed", async ({ 
   await day.getByTestId("confirm-remove-entry").click();
   await expect(day.getByTestId("day-exercise")).toHaveCount(0);
   await expect(day.getByTestId("day-empty")).toBeVisible();
+
+  // Escape is the native dialog's own close path — it must clear the URL too.
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("program-dialog")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/programs$/);
 });
 
 test("taking a template yields a full editable program with its icon", async ({ page }) => {
@@ -151,7 +160,8 @@ test("taking a template yields a full editable program with its icon", async ({ 
   await page.goto("/programs");
 
   await page.getByTestId("take-template-leg-day").click();
-  // materializeTemplate navigates to the copy when the replay finishes.
+  // The copy opens in the editor dialog when the replay finishes.
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
   await expect(page.getByTestId("program-title")).toHaveText("Leg Day");
   await expect(page.getByTestId("program-icon")).toHaveText("🦵");
   await expect(page.getByTestId("day-card")).toHaveCount(1);
@@ -166,8 +176,28 @@ test("taking a template yields a full editable program with its icon", async ({ 
   await page.getByTestId("change-icon").click();
   await page.getByTestId("icon-option-💪").click();
   await expect(page.getByTestId("program-icon")).toHaveText("💪");
-  await page.goto("/programs");
+  await page.getByTestId("close-program-dialog").click();
   await expect(page.getByTestId("program-card").filter({ hasText: "Leg Day" })).toContainText(
     "💪",
   );
+});
+
+test.describe("on a phone viewport", () => {
+  test.use({ viewport: { width: 375, height: 667 } });
+
+  test("creating a program opens the full page, not a dialog", async ({ page }) => {
+    await signUp(page, "programs-mobile");
+    await page.goto("/programs");
+
+    await page.getByTestId("program-name").fill("Phone Plan");
+    await page.getByTestId("create-program").click();
+
+    // Same editor, framed as a page — a dialog would cram the whole builder
+    // into a keyhole on this width.
+    await expect(page).toHaveURL(/\/programs\/[A-Za-z0-9_-]+$/);
+    await expect(page.getByTestId("program-dialog")).toHaveCount(0);
+    await expect(page.getByTestId("program-title")).toHaveText("Phone Plan");
+    await page.getByTestId("add-day").click();
+    await expect(page.getByTestId("day-name").first()).toHaveText("Day 1");
+  });
 });

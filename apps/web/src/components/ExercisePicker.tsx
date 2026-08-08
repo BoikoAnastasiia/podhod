@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
 import { fetchExercises } from "../lib/api.js";
+import { BODY_PARTS } from "../lib/bodyParts.js";
+import { FilterChips } from "./FilterChips.js";
 
 const pill =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
@@ -31,10 +33,11 @@ export function ExercisePicker({
 }) {
   const { lang, t, term } = useI18n();
   const [q, setQ] = useState("");
+  const [bodyPart, setBodyPart] = useState<string | undefined>();
 
   const results = useQuery({
-    queryKey: ["exercises", "picker", lang, q],
-    queryFn: () => fetchExercises({ lang, q, limit: PICKER_LIMIT }),
+    queryKey: ["exercises", "picker", lang, q, bodyPart],
+    queryFn: () => fetchExercises({ lang, q, bodyPart, limit: PICKER_LIMIT }),
   });
 
   return (
@@ -59,6 +62,16 @@ export function ExercisePicker({
       </div>
 
       <p className="mt-2 text-xs text-muted">{t("picker.hint")}</p>
+
+      {/* The same ten body-part chips the library filters by. */}
+      <div className="mt-3">
+        <FilterChips
+          options={BODY_PARTS}
+          selected={bodyPart}
+          onSelect={setBodyPart}
+          label={term}
+        />
+      </div>
 
       {results.isPending && <p className="mt-3 text-sm text-muted">{t("library.loading")}</p>}
       {results.isError && <p className="mt-3 text-sm text-error">{t("library.error")}</p>}

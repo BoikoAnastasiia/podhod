@@ -5,11 +5,7 @@ import { ExerciseCard } from "../../components/ExerciseCard.js";
 import { FilterChips } from "../../components/FilterChips.js";
 import { useI18n } from "../../i18n/useI18n.js";
 import { fetchExercises } from "../../lib/api.js";
-
-const BODY_PARTS = [
-  "back", "cardio", "chest", "lower arms", "lower legs",
-  "neck", "shoulders", "upper arms", "upper legs", "waist",
-];
+import { BODY_PARTS } from "../../lib/bodyParts.js";
 
 export const Route = createFileRoute("/library/")({
   component: Library,

@@ -66,8 +66,12 @@ test("builds a program from nothing", async ({ page }) => {
   await expect(day1.getByTestId("day-exercise")).toHaveCount(2);
   await day1.getByTestId("picker-close").click();
 
+  // Day 2 picks through the body-part chips instead of typing — the same
+  // filter taxonomy the library uses, wired to the same API parameter.
   const day2 = page.getByTestId("day-card").filter({ hasText: "Day 2" });
   await day2.getByTestId("add-exercise").click();
+  await day2.getByRole("button", { name: "upper legs", exact: true }).click();
+  await expect(day2.getByTestId("picker-result").first()).toBeVisible();
   await day2.getByTestId("picker-search").fill("squat");
   await day2.getByTestId("picker-result").first().click();
   await expect(day2.getByTestId("day-exercise")).toHaveCount(1);

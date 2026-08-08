@@ -8,6 +8,10 @@
 
 **Tech Stack:** React 19 · TanStack Router · TanStack Query · Tailwind 4 · Zod 4
 
+**Progress (2026-08-09):** All seven tasks (0–6) done and committed. 318 unit
+tests and 33 e2e green. The `0003` migration applies locally; production gets
+it automatically from the deploy workflow's migrate step on the next push.
+
 **Decisions (approved 2026-08-09):**
 - Template copies are ordinary programs — editable, archivable, deletable with the controls that already exist. The gallery is static UI, not rows in the user's list.
 - No multi-select in the picker. Instant add makes each pick one click; the panel staying open covers the "add five in a row" case.

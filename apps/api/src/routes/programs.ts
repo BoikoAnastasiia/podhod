@@ -1,20 +1,34 @@
 import type { ErrorResponse } from "@podhod/schema";
 import {
   createDaySchema,
+  createProgramExerciseSchema,
   createProgramSchema,
   errorResponseSchema,
+  langQuerySchema,
+  parseSchemeConfig,
   programDetailSchema,
   programListResponseSchema,
   reorderSchema,
   updateDaySchema,
+  updateProgramExerciseSchema,
   updateProgramSchema,
 } from "@podhod/schema";
 import type { BatchItem } from "drizzle-orm/batch";
 import { and, asc, count, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
-import { programDays, programs } from "../db/schema.js";
-import { findOwnedDay, findOwnedProgram } from "../lib/ownership.js";
+import {
+  exerciseTranslations,
+  exercises,
+  programDays,
+  programExercises,
+  programs,
+} from "../db/schema.js";
+import {
+  findOwnedDay,
+  findOwnedProgram,
+  findOwnedProgramExercise,
+} from "../lib/ownership.js";
 import type { AuthedEnv } from "../lib/session.js";
 import { requireSession } from "../lib/session.js";
 
@@ -208,6 +222,10 @@ export const programRoutes = new Hono<AuthedEnv>()
   })
 
   .get("/:id", async (c) => {
+    const parsedLang = langQuerySchema.safeParse(c.req.query("lang"));
+    if (!parsedLang.success) return c.json(fail("bad_request", "invalid lang"), 400);
+    const lang = parsedLang.data;
+
     const db = drizzle(c.env.DB);
     const program = await findOwnedProgram(db, c.get("session").user.id, c.req.param("id"));
     if (!program) return c.json(fail("not_found", "no such program"), 404);
@@ -217,6 +235,43 @@ export const programRoutes = new Hono<AuthedEnv>()
       .from(programDays)
       .where(eq(programDays.programId, program.id))
       .orderBy(asc(programDays.position));
+
+    /**
+     * Every day's exercises in one query rather than one per day. Name and
+     * image come from the library join, not from stored copies — they are the
+     * library's facts, and a copy would show a stale name after a re-seed.
+     */
+    const entries = await db
+      .select({
+        id: programExercises.id,
+        programDayId: programExercises.programDayId,
+        exerciseId: programExercises.exerciseId,
+        position: programExercises.position,
+        schemeConfig: programExercises.schemeConfig,
+        restSeconds: programExercises.restSeconds,
+        notes: programExercises.notes,
+        name: exerciseTranslations.name,
+        imagePath: exercises.imagePath,
+      })
+      .from(programExercises)
+      .innerJoin(programDays, eq(programExercises.programDayId, programDays.id))
+      .innerJoin(exercises, eq(programExercises.exerciseId, exercises.id))
+      .innerJoin(
+        exerciseTranslations,
+        and(
+          eq(exerciseTranslations.exerciseId, programExercises.exerciseId),
+          eq(exerciseTranslations.lang, lang),
+        ),
+      )
+      .where(eq(programDays.programId, program.id))
+      .orderBy(asc(programExercises.position));
+
+    const byDay = new Map<string, typeof entries>();
+    for (const entry of entries) {
+      const list = byDay.get(entry.programDayId) ?? [];
+      list.push(entry);
+      byDay.set(entry.programDayId, list);
+    }
 
     return c.json(
       programDetailSchema.parse({
@@ -230,10 +285,158 @@ export const programRoutes = new Hono<AuthedEnv>()
           id: d.id,
           name: d.name,
           position: d.position,
-          exercises: [],
+          exercises: (byDay.get(d.id) ?? []).flatMap((e) => {
+            const scheme = parseSchemeConfig(e.schemeConfig);
+            // Unreachable while every write validates against schemeSchema.
+            // If a row is ever corrupted by hand or by a bad migration, the
+            // rest of the program still renders rather than the whole page
+            // failing on one bad entry.
+            if (!scheme.ok) return [];
+            return [
+              {
+                id: e.id,
+                exerciseId: e.exerciseId,
+                name: e.name,
+                imagePath: e.imagePath,
+                position: e.position,
+                scheme: scheme.scheme,
+                restSeconds: e.restSeconds,
+                notes: e.notes,
+              },
+            ];
+          }),
         })),
       }),
     );
+  })
+
+  .post("/days/:dayId/exercises", async (c) => {
+    const parsed = createProgramExerciseSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json(fail("bad_request", "invalid exercise"), 400);
+
+    const db = drizzle(c.env.DB);
+    const day = await findOwnedDay(db, c.get("session").user.id, c.req.param("dayId"));
+    if (!day) return c.json(fail("not_found", "no such day"), 404);
+
+    const [library] = await db
+      .select({ id: exercises.id })
+      .from(exercises)
+      .where(eq(exercises.id, parsed.data.exerciseId))
+      .limit(1);
+    // Without this the foreign key would reject the insert with a 500. A
+    // request naming an exercise that does not exist is the caller's mistake.
+    if (!library) return c.json(fail("bad_request", "no such exercise"), 400);
+
+    const [existing] = await db
+      .select({ n: count() })
+      .from(programExercises)
+      .where(eq(programExercises.programDayId, day.id));
+
+    const id = newId();
+    await db.insert(programExercises).values({
+      id,
+      programDayId: day.id,
+      exerciseId: parsed.data.exerciseId,
+      position: existing?.n ?? 0,
+      // Written from the JSON rather than taken separately from the request,
+      // so the column and the config cannot disagree about the scheme.
+      schemeType: parsed.data.scheme.kind,
+      schemeConfig: JSON.stringify(parsed.data.scheme),
+      restSeconds: parsed.data.restSeconds ?? null,
+      notes: parsed.data.notes ?? null,
+    });
+
+    return c.json({ id }, 201);
+  })
+
+  .patch("/exercises/:entryId", async (c) => {
+    const parsed = updateProgramExerciseSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json(fail("bad_request", "invalid exercise"), 400);
+
+    const db = drizzle(c.env.DB);
+    const entry = await findOwnedProgramExercise(
+      db,
+      c.get("session").user.id,
+      c.req.param("entryId"),
+    );
+    if (!entry) return c.json(fail("not_found", "no such exercise"), 404);
+
+    const patch: Record<string, unknown> = {};
+    if (parsed.data.scheme !== undefined) {
+      // Both columns move together, always.
+      patch.schemeType = parsed.data.scheme.kind;
+      patch.schemeConfig = JSON.stringify(parsed.data.scheme);
+    }
+    if (parsed.data.restSeconds !== undefined) patch.restSeconds = parsed.data.restSeconds ?? null;
+    if (parsed.data.notes !== undefined) patch.notes = parsed.data.notes ?? null;
+
+    if (Object.keys(patch).length > 0) {
+      await db.update(programExercises).set(patch).where(eq(programExercises.id, entry.id));
+    }
+    return c.body(null, 204);
+  })
+
+  .delete("/exercises/:entryId", async (c) => {
+    const db = drizzle(c.env.DB);
+    const entry = await findOwnedProgramExercise(
+      db,
+      c.get("session").user.id,
+      c.req.param("entryId"),
+    );
+    if (!entry) return c.json(fail("not_found", "no such exercise"), 404);
+
+    const remaining = (
+      await db
+        .select({ id: programExercises.id })
+        .from(programExercises)
+        .where(eq(programExercises.programDayId, entry.programDayId))
+        .orderBy(asc(programExercises.position))
+    ).filter((e) => e.id !== entry.id);
+
+    await runBatch(db, [
+      db.delete(programExercises).where(eq(programExercises.id, entry.id)),
+      ...remaining.map((e, position) =>
+        db.update(programExercises).set({ position }).where(eq(programExercises.id, e.id)),
+      ),
+    ]);
+
+    return c.body(null, 204);
+  })
+
+  .put("/days/:dayId/exercises/order", async (c) => {
+    const parsed = reorderSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json(fail("bad_request", "invalid order"), 400);
+
+    const db = drizzle(c.env.DB);
+    const day = await findOwnedDay(db, c.get("session").user.id, c.req.param("dayId"));
+    if (!day) return c.json(fail("not_found", "no such day"), 404);
+
+    const existing = await db
+      .select({ id: programExercises.id })
+      .from(programExercises)
+      .where(eq(programExercises.programDayId, day.id));
+
+    // Same set-equality check as the day reorder, and for the same reason: a
+    // partial write leaves two rows sharing a position, permanently.
+    const submitted = parsed.data.ids;
+    const known = new Set(existing.map((e) => e.id));
+    const unique = new Set(submitted);
+    const complete =
+      unique.size === submitted.length &&
+      unique.size === known.size &&
+      submitted.every((id) => known.has(id));
+    if (!complete) {
+      return c.json(fail("bad_request", "order must list every exercise exactly once"), 400);
+    }
+
+    await runBatch(
+      db,
+      submitted.map((id, position) =>
+        db.update(programExercises).set({ position }).where(eq(programExercises.id, id)),
+      ),
+    );
+
+    return c.body(null, 204);
   })
 
   .post("/:id/days", async (c) => {

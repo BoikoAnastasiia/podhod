@@ -131,6 +131,7 @@ describe("programDetailSchema", () => {
       id: "p1",
       name: "5×5",
       notes: null,
+      icon: null,
       isActive: true,
       archivedAt: null,
       createdAt: 1,

@@ -58,6 +58,8 @@ export function ExercisePicker({
         </button>
       </div>
 
+      <p className="mt-2 text-xs text-muted">{t("picker.hint")}</p>
+
       {results.isPending && <p className="mt-3 text-sm text-muted">{t("library.loading")}</p>}
       {results.isError && <p className="mt-3 text-sm text-error">{t("library.error")}</p>}
       {results.isSuccess && results.data.items.length === 0 && (

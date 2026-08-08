@@ -1,9 +1,4 @@
-import type {
-  CreateProgramExerciseInput,
-  ExerciseListItem,
-  ProgramDay,
-  SchemeInput,
-} from "@podhod/schema";
+import type { CreateProgramExerciseInput, ProgramDay, SchemeInput } from "@podhod/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
@@ -21,13 +16,6 @@ import { moved, ReorderButtons } from "./ReorderButtons.js";
 import { SCHEME_DEFAULTS, SchemeEditor } from "./SchemeEditor.js";
 import { SchemeSummary } from "./SchemeSummary.js";
 
-/**
- * The add flow is a two-step state machine — pick an exercise, then configure
- * its scheme — because an exercise with no scheme is not a valid program entry
- * and the API would reject it. Cancelling the scheme step goes back to the
- * picker rather than closing, so a wrong pick costs one click, not the search.
- */
-type Adding = { step: "pick" } | { step: "scheme"; exercise: ExerciseListItem } | null;
 
 const pill =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
@@ -56,7 +44,7 @@ export function DayEditor({
 
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [adding, setAdding] = useState<Adding>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   /** Which entry's scheme is open in an editor, and which is one click from removal. */
   const [editingScheme, setEditingScheme] = useState<string | null>(null);
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
@@ -82,12 +70,15 @@ export function DayEditor({
     onSuccess: invalidate,
   });
 
+  /**
+   * A pick adds immediately with the default linear scheme — configuration
+   * never gates creation. The panel stays open on purpose: adding five
+   * exercises in a row is the common case, and the scheme is one tap away
+   * afterwards for the entries that want something else.
+   */
   const add = useMutation({
     mutationFn: (input: CreateProgramExerciseInput) => addExercise(day.id, input),
-    onSuccess: async () => {
-      setAdding(null);
-      await invalidate();
-    },
+    onSuccess: invalidate,
   });
 
   const updateEntry = useMutation({
@@ -295,44 +286,31 @@ export function DayEditor({
         </ul>
       )}
 
-      {adding === null && (
+      {!pickerOpen && (
         <button
           type="button"
           className={`${pill} mt-4`}
           data-testid="add-exercise"
-          onClick={() => setAdding({ step: "pick" })}
+          onClick={() => setPickerOpen(true)}
         >
           {t("picker.add")}
         </button>
       )}
 
-      {adding?.step === "pick" && (
-        <ExercisePicker
-          onPick={(exercise) => setAdding({ step: "scheme", exercise })}
-          onClose={() => setAdding(null)}
-        />
-      )}
-
-      {adding?.step === "scheme" && (
-        <div className="mt-4 rounded-row border border-border p-4" data-testid="scheme-step">
-          <p className="text-sm font-semibold text-ink">{adding.exercise.name}</p>
+      {pickerOpen && (
+        <>
           {add.isError && (
-            <p role="alert" className="mt-2 text-sm text-error">
+            <p role="alert" className="mt-4 text-sm text-error">
               {t("picker.failed")}
             </p>
           )}
-          <div className="mt-3">
-            <SchemeEditor
-              initial={SCHEME_DEFAULTS.linear}
-              submitLabel={t("picker.submit")}
-              pending={add.isPending}
-              onSubmit={(scheme) =>
-                add.mutate({ exerciseId: adding.exercise.id, scheme })
-              }
-              onCancel={() => setAdding({ step: "pick" })}
-            />
-          </div>
-        </div>
+          <ExercisePicker
+            onPick={(exercise) =>
+              add.mutate({ exerciseId: exercise.id, scheme: SCHEME_DEFAULTS.linear })
+            }
+            onClose={() => setPickerOpen(false)}
+          />
+        </>
       )}
     </li>
   );

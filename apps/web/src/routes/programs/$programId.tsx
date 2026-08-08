@@ -18,8 +18,6 @@ function ProgramDetail() {
   const { t, lang } = useI18n();
   const queryClient = useQueryClient();
 
-  const [newDayName, setNewDayName] = useState("");
-
   const program = useQuery({
     queryKey: programKeys.detail(programId, lang),
     queryFn: () => fetchProgram(programId, lang),
@@ -27,12 +25,15 @@ function ProgramDetail() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: programKeys.all });
 
+  /**
+   * One click, no name field: naming a day before it exists is the wrong
+   * order — most days end up "Day 1..3" anyway, and rename sits right on the
+   * card for anyone who cares. The count-based default can collide after a
+   * delete ("Day 2" twice); names are labels, not keys, so that is harmless.
+   */
   const addDay = useMutation({
-    mutationFn: (name: string) => createDay(programId, name),
-    onSuccess: async () => {
-      setNewDayName("");
-      await invalidate();
-    },
+    mutationFn: () => createDay(programId, `${t("days.defaultName")} ${days.length + 1}`),
+    onSuccess: invalidate,
   });
 
   const reorder = useMutation({
@@ -65,31 +66,15 @@ function ProgramDetail() {
             {program.data.name}
           </h1>
 
-          <form
-            className="mt-6 flex flex-wrap items-center gap-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const name = newDayName.trim();
-              if (name.length > 0) addDay.mutate(name);
-            }}
+          <button
+            type="button"
+            data-testid="add-day"
+            disabled={addDay.isPending}
+            onClick={() => addDay.mutate()}
+            className="mt-6 min-h-tap-min rounded-full bg-accent px-5 text-sm font-semibold text-ink-on-accent disabled:opacity-50"
           >
-            <input
-              value={newDayName}
-              onChange={(event) => setNewDayName(event.target.value)}
-              placeholder={t("days.name.placeholder")}
-              data-testid="new-day-name"
-              maxLength={80}
-              className="min-h-tap-min flex-1 rounded-row border border-border bg-surface px-4 text-ink"
-            />
-            <button
-              type="submit"
-              data-testid="add-day"
-              disabled={newDayName.trim().length === 0 || addDay.isPending}
-              className="min-h-tap-min rounded-full bg-accent px-5 text-sm font-semibold text-ink-on-accent disabled:opacity-50"
-            >
-              {t("days.add")}
-            </button>
-          </form>
+            {t("days.add")}
+          </button>
 
           {days.length === 0 ? (
             <p className="mt-8 text-muted" data-testid="days-empty">

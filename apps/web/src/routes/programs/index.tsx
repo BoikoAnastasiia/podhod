@@ -1,7 +1,8 @@
 import type { ProgramSummary } from "@podhod/schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ProgramEditor } from "../../components/ProgramEditor.js";
 import {
   PROGRAM_TEMPLATES,
   type ProgramTemplate,
@@ -21,9 +22,20 @@ import { requireSession } from "../../lib/requireSession.js";
  * 401s.
  */
 export const Route = createFileRoute("/programs/")({
+  /**
+   * `?program=<id>` is the desktop dialog's state, kept in the URL so refresh
+   * and Back restore the open editor, and a shared link opens the right one.
+   */
+  validateSearch: (search: Record<string, unknown>): { program?: string } =>
+    typeof search.program === "string" && search.program.length > 0
+      ? { program: search.program }
+      : {},
   beforeLoad: ({ location }) => requireSession(location.href),
   component: Programs,
 });
+
+/** The sm breakpoint — below it the editor is a page, not a dialog. */
+const DESKTOP = "(min-width: 40rem)";
 
 const dayNounForms = {
   en: { one: "day", other: "days" },
@@ -33,11 +45,61 @@ const dayNounForms = {
 const pill =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
 
+/**
+ * A native <dialog>, because the platform already solved what hand-rolled
+ * modals get wrong: focus is trapped, Escape closes (firing `close`, which
+ * clears the URL param via onClose), and ::backdrop needs no extra element.
+ */
+function ProgramDialog({ programId, onClose }: { programId: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    ref.current?.showModal();
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      data-testid="program-dialog"
+      onClose={onClose}
+      className="m-auto max-h-dvh w-full max-w-content overflow-y-auto rounded-card border border-border bg-surface p-6 backdrop:bg-ink/50"
+    >
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className={pill}
+          data-testid="close-program-dialog"
+          onClick={() => ref.current?.close()}
+        >
+          {t("programs.close")}
+        </button>
+      </div>
+      <ProgramEditor programId={programId} />
+    </dialog>
+  );
+}
+
 function Programs() {
   const { t, lang } = useI18n();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { program: openProgramId } = Route.useSearch();
   const [name, setName] = useState("");
+
+  // A dialog link opened on a phone forwards to the page shell — the same
+  // editor, framed for the viewport it actually has.
+  useEffect(() => {
+    if (openProgramId && !window.matchMedia(DESKTOP).matches) {
+      void navigate({
+        to: "/programs/$programId",
+        params: { programId: openProgramId },
+        replace: true,
+      });
+    }
+  }, [openProgramId, navigate]);
+
+  const closeDialog = () => void navigate({ to: "/programs", search: {} });
   const [createError, setCreateError] = useState(false);
   /** Which program is one click from deletion. See the delete control below. */
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
@@ -340,6 +402,10 @@ function Programs() {
           </h2>
           <ul className="mt-4 flex flex-col gap-4">{archived.map(card)}</ul>
         </section>
+      )}
+
+      {openProgramId && window.matchMedia(DESKTOP).matches && (
+        <ProgramDialog key={openProgramId} programId={openProgramId} onClose={closeDialog} />
       )}
     </div>
   );

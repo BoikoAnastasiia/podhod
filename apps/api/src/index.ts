@@ -4,6 +4,7 @@ import { createAuth } from "./lib/auth.js";
 import { validateAuthBody } from "./lib/authValidation.js";
 import { exerciseRoutes } from "./routes/exercises.js";
 import { meRoutes } from "./routes/me.js";
+import { programRoutes } from "./routes/programs.js";
 
 type Env = {
   Bindings: {
@@ -39,6 +40,7 @@ app.on(["GET", "POST"], "/api/auth/*", async (c) => {
 
 app.route("/api/exercises", exerciseRoutes);
 app.route("/api/me", meRoutes);
+app.route("/api/programs", programRoutes);
 
 /**
  * `run_worker_first: ["/api/*"]` means only API paths reach the Worker before

@@ -11,6 +11,11 @@
 
 **Architecture:** Migration `0004` rebuilds `program_exercises` with a direct `program_id` (positions renumbered day-order-then-exercise-order via `ROW_NUMBER()`), then drops `program_days`. The API loses all `/days` routes; exercises hang off `/programs/:id/exercises`. The web's `DayEditor` dissolves into `ProgramEditor`. Fixed-scheme rows render the weight as an inline input that PATCHes on commit; other kinds render the existing summary.
 
+**Progress (2026-08-09):** All six tasks done and committed (tasks 3 and 4
+landed as one commit — the materializer ties the client to the template
+shape). 296 unit tests + 34 e2e green. Migration `0004` applied locally;
+production applies it from the deploy workflow on push.
+
 ## Global Constraints
 
 Unchanged from 3b/3c: no new dependencies, tokens only, all strings bilingual via `useI18n()`, invalidate-don't-patch, `run` in pnpm filters, grep built CSS for new utilities, never regenerate migrations (partial index in `0002`).

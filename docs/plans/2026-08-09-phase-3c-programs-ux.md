@@ -418,6 +418,31 @@ git commit -m "Cover templates and the instant-add flow end to end"
 
 ---
 
+## Addendum (2026-08-09, owner-requested): responsive program editor
+
+Creating a program and then having to find and open it was judged bad UX by
+the owner. Agreed design: **every create opens what it created** — and the
+editor presents responsively as a modal over `/programs` on desktop, a full
+page on mobile (a builder crammed into a phone-width dialog is worse than a
+page). One editor, two shells:
+
+- **Task 7 — extract `ProgramEditor`.** The `$programId` route's body (title,
+  IconPicker, add-day, day list) moves to `components/ProgramEditor.tsx`,
+  taking `programId`; the route keeps only the wrapper, back link and
+  `requireSession`. Mechanical, commit alone.
+- **Task 8 — the modal shell, URL-driven.** `/programs` gains a validated
+  `?program=<id>` search param. When set, a native `<dialog>` (free focus
+  trap, Escape, backdrop — the a11y traps hand-rolled modals get wrong)
+  renders `ProgramEditor` at `max-w-content`, scrollable. Closing clears the
+  param; refresh and Back restore it. On a viewport under `sm`, an effect
+  forwards `?program=x` to `/programs/$programId` instead.
+- **Task 9 — one opening rule.** `openProgram(id)`: viewport ≥ `sm`
+  (`matchMedia`) → set the search param; below → navigate to the page route.
+  Wired into create-program (the original complaint: create now lands in the
+  builder immediately), «Взять программу», and «Открыть». e2e: desktop tests
+  assert the modal restores after reload; one mobile-viewport test asserts
+  the page route; Escape closes and returns to the list.
+
 ## What this plan does not do
 
 - **No server-side template storage or copy endpoint.** Client replay through existing routes; revisit only if templates ever need to change without a deploy.

@@ -6,6 +6,13 @@
 
 **Tech Stack:** React 19 · TanStack Router · TanStack Query · Tailwind 4 · Zod 4
 
+**Progress (2026-08-08):** Tasks 1–3 are done and committed — the API client and
+query keys, the `/programs` list, and the day editor. Tasks 4–7 remain: exercise
+picker, scheme editor, exercise management inside a day, end-to-end coverage.
+Task 3 also created `routes/programs/$programId.tsx` earlier than planned,
+because Task 2's cards link to it and the route tree would not typecheck without
+it.
+
 **Design note:** Visual design is parked by the owner until the logic is complete. This phase adds **no new tokens, no new colours, no new layout ideas** — it reuses the existing card, chip and button classes as they stand. The result will look plain. That is deliberate, and the design pass will cover these screens along with the rest.
 
 ## Global Constraints

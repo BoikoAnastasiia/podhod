@@ -497,6 +497,17 @@ green.
 Each phase ends deployable, and each gets its **own implementation plan** — this
 spec is deliberately larger than one plan's worth of work.
 
+**Implementation deviated from this order, deliberately.** Phases 2 and 3 below
+were swapped: the engine was built before programs, because
+`program_exercises.scheme_config` is JSON whose shape the engine defines.
+Building the scheme editor first would have meant inventing those shapes by hand
+and reconciling them later; this way the editor validates against a schema that
+already exists and is already tested. The engine also has no dependencies at all,
+so it reached a green test suite fastest. The cost was that its phase shipped
+nothing user-visible.
+
+Plans live in `docs/plans/`, one per phase, named for the phase they implement.
+
 1. **Foundation** — monorepo, D1 + Drizzle + migrations, seed pipeline including
    Russian names, Better Auth, library browse and search.
    *Ships as a usable bilingual exercise encyclopedia.*

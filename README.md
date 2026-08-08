@@ -12,9 +12,23 @@ Russian and English throughout.
 
 ## Status
 
-In development. Design is settled and documented in
-[`docs/design.md`](docs/design.md); implementation is phased, starting with the
-data pipeline and exercise library.
+Live at **[podhod-workout.cc](https://podhod-workout.cc)**.
+
+In development, phased, each phase ending deployable. Shipped so far: the
+bilingual exercise library, accounts, the progression engine, and the API for
+building training programs. Currently in progress: the screens for building
+them. Design and rationale are in [`docs/design.md`](docs/design.md); each
+phase has its own plan under [`docs/plans/`](docs/plans/).
+
+| | |
+|---|---|
+| Exercise library — 1,324 exercises, RU/EN search and filters | shipped |
+| Accounts — email/password and Google, sessions in D1 | shipped |
+| Progression engine — four schemes, pure functions | shipped |
+| Programs API — days, exercises, schemes, reordering | shipped |
+| Programs UI — build a program in the browser | in progress |
+| Session player — log sets, rest timer, retry outbox | next |
+| History and progress — records, tonnage, estimated 1RM | planned |
 
 ## Stack
 
@@ -27,18 +41,40 @@ data pipeline and exercise library.
 | Database | Cloudflare D1 (SQLite) · Drizzle ORM |
 | Auth | Better Auth · Drizzle adapter · sessions in D1 |
 
-Accounts landed in Phase 1b: email/password sign-up and sign-in, Google
-sign-in alongside it, sessions as ordinary `HttpOnly` cookies, and a
-`user_settings` row created for every account on signup. Email verification
-is later phase-1b work, waiting on credentials rather than code. The library
-stays public — browsing and
-searching it has never required an account, and `/settings` is the one route
-this phase gates, as a working example for the `/programs` and `/history` routes
-Phase 2 adds behind the same check.
+Accounts are email/password and Google, with sessions as ordinary `HttpOnly`
+cookies and a `user_settings` row created for every account on signup. There is
+no email verification: Cloudflare Email Sending needs the Workers Paid plan, so
+`emailVerified` stays false and Google accounts are linked manually from
+`/settings` rather than automatically at sign-in — automatic linking on an
+unverified email is account takeover.
+
+**The library stays public.** Browsing and searching have never required an
+account. Everything under `/programs` requires one, checked both in the route's
+`beforeLoad` and again on every API request; the client-side check is a
+convenience, and the server one is the gate.
 
 A single Worker serves both the API and the client's static assets, so `/api/*`
 is same-origin — the property that lets Better Auth use ordinary `HttpOnly`
 cookies instead of a token exchange.
+
+## Programs
+
+A program is a set of training days, each an ordered list of exercises with a
+progression scheme. At most one program is active at a time, enforced by a
+partial unique index rather than by application code — two concurrent
+activations both pass an "is anything else active?" check and both write, so
+only the database can refuse the second.
+
+Editing a program never rewrites history. When the session player lands, a
+workout will snapshot its plan into `workout_entries.planned` at the moment it
+starts; if history pointed at live program rows instead, last March's session
+would silently rewrite itself every time an increment changed.
+
+Reordering takes the complete ordered list rather than a from/to pair. That
+makes the write idempotent, and the server checks the submitted ids are exactly
+the parent's children before touching a row — D1 has no interactive transaction
+to roll back inside, so a partial reorder would leave two rows sharing a
+position permanently.
 
 ## The progression engine
 

@@ -1,15 +1,20 @@
 import type { ErrorResponse } from "@podhod/schema";
 import {
+  createDaySchema,
   createProgramSchema,
   errorResponseSchema,
+  programDetailSchema,
   programListResponseSchema,
+  reorderSchema,
+  updateDaySchema,
   updateProgramSchema,
 } from "@podhod/schema";
-import { and, count, eq } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
+import { and, asc, count, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { programDays, programs } from "../db/schema.js";
-import { findOwnedProgram } from "../lib/ownership.js";
+import { findOwnedDay, findOwnedProgram } from "../lib/ownership.js";
 import type { AuthedEnv } from "../lib/session.js";
 import { requireSession } from "../lib/session.js";
 
@@ -22,6 +27,21 @@ const fail = (code: ErrorResponse["error"]["code"], message: string) =>
  * create to one round trip instead of an insert followed by a read-back.
  */
 const newId = () => crypto.randomUUID();
+
+/**
+ * `db.batch()` is typed as a non-empty tuple, which an array built by `map`
+ * cannot satisfy on its own. This narrows it once, in a place where the
+ * emptiness check is right next to the assertion, rather than casting at each
+ * call site — an empty batch is a no-op worth skipping anyway.
+ */
+type Batch = BatchItem<"sqlite">;
+async function runBatch(
+  db: ReturnType<typeof drizzle>,
+  statements: Batch[],
+): Promise<void> {
+  if (statements.length === 0) return;
+  await db.batch(statements as [Batch, ...Batch[]]);
+}
 
 /**
  * `created_at` is milliseconds since the epoch, written at the edge. This is
@@ -141,5 +161,143 @@ export const programRoutes = new Hono<AuthedEnv>()
 
     // Days and their exercises go with it, by ON DELETE CASCADE.
     await db.delete(programs).where(eq(programs.id, existing.id));
+    return c.body(null, 204);
+  })
+
+  /**
+   * Registered before `/:id` for readability rather than necessity — Hono
+   * matches on segment count, and `/days/:dayId` is two segments where `/:id`
+   * is one, so they cannot collide.
+   */
+  .patch("/days/:dayId", async (c) => {
+    const parsed = updateDaySchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json(fail("bad_request", "invalid day"), 400);
+
+    const db = drizzle(c.env.DB);
+    const day = await findOwnedDay(db, c.get("session").user.id, c.req.param("dayId"));
+    if (!day) return c.json(fail("not_found", "no such day"), 404);
+
+    await db.update(programDays).set({ name: parsed.data.name }).where(eq(programDays.id, day.id));
+    return c.body(null, 204);
+  })
+
+  .delete("/days/:dayId", async (c) => {
+    const db = drizzle(c.env.DB);
+    const day = await findOwnedDay(db, c.get("session").user.id, c.req.param("dayId"));
+    if (!day) return c.json(fail("not_found", "no such day"), 404);
+
+    const remaining = (
+      await db
+        .select({ id: programDays.id })
+        .from(programDays)
+        .where(eq(programDays.programId, day.programId))
+        .orderBy(asc(programDays.position))
+    ).filter((d) => d.id !== day.id);
+
+    // Deleting from the middle would otherwise leave a hole — positions 0,2,3
+    // — and every later insert computes its position from the count, so the
+    // hole eventually collides. Renumbering keeps them contiguous from 0.
+    await runBatch(db, [
+      db.delete(programDays).where(eq(programDays.id, day.id)),
+      ...remaining.map((d, position) =>
+        db.update(programDays).set({ position }).where(eq(programDays.id, d.id)),
+      ),
+    ]);
+
+    return c.body(null, 204);
+  })
+
+  .get("/:id", async (c) => {
+    const db = drizzle(c.env.DB);
+    const program = await findOwnedProgram(db, c.get("session").user.id, c.req.param("id"));
+    if (!program) return c.json(fail("not_found", "no such program"), 404);
+
+    const days = await db
+      .select()
+      .from(programDays)
+      .where(eq(programDays.programId, program.id))
+      .orderBy(asc(programDays.position));
+
+    return c.json(
+      programDetailSchema.parse({
+        id: program.id,
+        name: program.name,
+        notes: program.notes,
+        isActive: program.isActive === 1,
+        archivedAt: program.archivedAt,
+        createdAt: program.createdAt,
+        days: days.map((d) => ({
+          id: d.id,
+          name: d.name,
+          position: d.position,
+          exercises: [],
+        })),
+      }),
+    );
+  })
+
+  .post("/:id/days", async (c) => {
+    const parsed = createDaySchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json(fail("bad_request", "invalid day"), 400);
+
+    const db = drizzle(c.env.DB);
+    const program = await findOwnedProgram(db, c.get("session").user.id, c.req.param("id"));
+    if (!program) return c.json(fail("not_found", "no such program"), 404);
+
+    const [existing] = await db
+      .select({ n: count() })
+      .from(programDays)
+      .where(eq(programDays.programId, program.id));
+
+    const id = newId();
+    await db.insert(programDays).values({
+      id,
+      programId: program.id,
+      // A new day lands at the end. Positions are kept contiguous by the
+      // delete and reorder handlers, so the count is the next free slot.
+      position: existing?.n ?? 0,
+      name: parsed.data.name,
+    });
+
+    return c.json({ id }, 201);
+  })
+
+  .put("/:id/days/order", async (c) => {
+    const parsed = reorderSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json(fail("bad_request", "invalid order"), 400);
+
+    const db = drizzle(c.env.DB);
+    const program = await findOwnedProgram(db, c.get("session").user.id, c.req.param("id"));
+    if (!program) return c.json(fail("not_found", "no such program"), 404);
+
+    const existing = await db
+      .select({ id: programDays.id })
+      .from(programDays)
+      .where(eq(programDays.programId, program.id));
+
+    /**
+     * The submitted list must be exactly this program's day ids — same
+     * members, no duplicates, none missing. Anything else is refused before a
+     * single row is touched, because a partial reorder leaves two days sharing
+     * a position and the resulting order is then arbitrary. D1 gives no
+     * interactive transaction to roll back inside, so checking set equality up
+     * front is the only way to be certain.
+     */
+    const submitted = parsed.data.ids;
+    const known = new Set(existing.map((d) => d.id));
+    const unique = new Set(submitted);
+    const complete =
+      unique.size === submitted.length &&
+      unique.size === known.size &&
+      submitted.every((id) => known.has(id));
+    if (!complete) return c.json(fail("bad_request", "order must list every day exactly once"), 400);
+
+    await runBatch(
+      db,
+      submitted.map((id, position) =>
+        db.update(programDays).set({ position }).where(eq(programDays.id, id)),
+      ),
+    );
+
     return c.body(null, 204);
   });

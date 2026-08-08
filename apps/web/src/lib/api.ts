@@ -126,31 +126,11 @@ export function deleteProgram(id: string): Promise<void> {
   return send("DELETE", `/api/programs/${id}`).then(() => undefined);
 }
 
-export function createDay(programId: string, name: string): Promise<string | undefined> {
-  return send("POST", `/api/programs/${programId}/days`, { name }, createdId);
-}
-
-export function updateDay(dayId: string, name: string): Promise<void> {
-  return send("PATCH", `/api/programs/days/${dayId}`, { name }).then(() => undefined);
-}
-
-export function deleteDay(dayId: string): Promise<void> {
-  return send("DELETE", `/api/programs/days/${dayId}`).then(() => undefined);
-}
-
-/**
- * The complete ordered list, not a from/to pair — the API validates the set
- * before writing, so a partial list is refused rather than half-applied.
- */
-export function reorderDays(programId: string, ids: string[]): Promise<void> {
-  return send("PUT", `/api/programs/${programId}/days/order`, { ids }).then(() => undefined);
-}
-
 export function addExercise(
-  dayId: string,
+  programId: string,
   input: CreateProgramExerciseInput,
 ): Promise<string | undefined> {
-  return send("POST", `/api/programs/days/${dayId}/exercises`, input, createdId);
+  return send("POST", `/api/programs/${programId}/exercises`, input, createdId);
 }
 
 export function updateExercise(
@@ -164,8 +144,12 @@ export function deleteExercise(entryId: string): Promise<void> {
   return send("DELETE", `/api/programs/exercises/${entryId}`).then(() => undefined);
 }
 
-export function reorderExercises(dayId: string, ids: string[]): Promise<void> {
-  return send("PUT", `/api/programs/days/${dayId}/exercises/order`, { ids }).then(
+/**
+ * The complete ordered list, not a from/to pair — the API validates the set
+ * before writing, so a partial list is refused rather than half-applied.
+ */
+export function reorderExercises(programId: string, ids: string[]): Promise<void> {
+  return send("PUT", `/api/programs/${programId}/exercises/order`, { ids }).then(
     () => undefined,
   );
 }

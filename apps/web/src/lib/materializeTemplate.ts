@@ -1,12 +1,12 @@
 import type { Lang } from "@podhod/schema";
 import type { ProgramTemplate } from "../data/programTemplates.js";
-import { addExercise, createDay, createProgram } from "./api.js";
+import { addExercise, createProgram } from "./api.js";
 
 /**
- * Replays a template through the same three endpoints the hand-building flow
- * uses, in the visitor's language. Sequential on purpose: day and exercise
- * order is positional server-side, and firing the creates concurrently would
- * race the positions. ~20 requests against the Worker is imperceptible.
+ * Replays a template through the same two endpoints the hand-building flow
+ * uses, in the visitor's language. Sequential on purpose: exercise order is
+ * positional server-side, and firing the creates concurrently would race the
+ * positions. A handful of requests against the Worker is imperceptible.
  *
  * No rollback on mid-sequence failure — the partial program is visible and
  * deletable, which is a better failure mode than invisible cleanup logic
@@ -23,12 +23,8 @@ export async function materializeTemplate(
   });
   if (!programId) throw new Error("internal");
 
-  for (const day of template.days) {
-    const dayId = await createDay(programId, day.name[lang]);
-    if (!dayId) throw new Error("internal");
-    for (const exercise of day.exercises) {
-      await addExercise(dayId, exercise);
-    }
+  for (const exercise of template.exercises) {
+    await addExercise(programId, exercise);
   }
   return programId;
 }

@@ -37,11 +37,6 @@ export const Route = createFileRoute("/programs/")({
 /** The sm breakpoint — below it the editor is a page, not a dialog. */
 const DESKTOP = "(min-width: 40rem)";
 
-const dayNounForms = {
-  en: { one: "day", other: "days" },
-  ru: { one: "день", few: "дня", many: "дней" },
-} as const;
-
 const pill =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
 
@@ -166,14 +161,13 @@ function Programs() {
   const live = all.filter((p) => p.archivedAt === null);
   const archived = all.filter((p) => p.archivedAt !== null);
 
-  const dayCountLabel = (program: ProgramSummary) =>
-    program.dayCount === 0
-      ? t("programs.dayCount.zero")
-      : `${program.dayCount} ${plural(lang, program.dayCount, dayNounForms[lang])}`;
+  const exerciseCountLabel = (program: ProgramSummary) =>
+    program.exerciseCount === 0
+      ? t("programs.exerciseCount.zero")
+      : `${program.exerciseCount} ${plural(lang, program.exerciseCount, exerciseNounForms[lang])}`;
 
   const templateCard = (template: ProgramTemplate) => {
-    const dayCount = template.days.length;
-    const exerciseCount = template.days.reduce((sum, d) => sum + d.exercises.length, 0);
+    const exerciseCount = template.exercises.length;
     const taking = take.isPending && take.variables?.id === template.id;
     return (
       <li
@@ -198,8 +192,7 @@ function Programs() {
             </span>
           ))}
           <span className="text-sm text-muted tabular-nums">
-            {dayCount} {plural(lang, dayCount, dayNounForms[lang])} · {exerciseCount}{" "}
-            {plural(lang, exerciseCount, exerciseNounForms[lang])}
+            {exerciseCount} {plural(lang, exerciseCount, exerciseNounForms[lang])}
           </span>
         </div>
         <button
@@ -261,7 +254,7 @@ function Programs() {
             {t("programs.active")}
           </span>
         )}
-        <span className="text-sm text-muted tabular-nums">{dayCountLabel(program)}</span>
+        <span className="text-sm text-muted tabular-nums">{exerciseCountLabel(program)}</span>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">

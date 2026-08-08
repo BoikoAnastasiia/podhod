@@ -1,14 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createProgram,
-  deleteDay,
   deleteExercise,
   deleteProgram,
   fetchExercise,
   fetchExerciseCount,
   fetchExercises,
   fetchProgram,
-  reorderDays,
   reorderExercises,
   updateExercise,
   updateProgram,
@@ -82,9 +80,7 @@ describe("program writes", () => {
 
   it.each([
     ["updateProgram", () => updateProgram("p1", { name: "x" })],
-    ["deleteDay", () => deleteDay("d1")],
-    ["reorderDays", () => reorderDays("p1", ["a", "b"])],
-    ["reorderExercises", () => reorderExercises("d1", ["a", "b"])],
+    ["reorderExercises", () => reorderExercises("p1", ["a", "b"])],
     ["updateExercise", () => updateExercise("e1", { notes: "x" })],
     ["deleteExercise", () => deleteExercise("e1")],
   ])("%s resolves on 204", async (_name, call) => {
@@ -103,7 +99,7 @@ describe("program writes", () => {
   it("sends the complete ordered list when reordering, not a from/to pair", async () => {
     const f = vi.fn().mockResolvedValue({ ok: true, status: 204, json: async () => null });
     vi.stubGlobal("fetch", f);
-    await reorderDays("p1", ["c", "a", "b"]);
+    await reorderExercises("p1", ["c", "a", "b"]);
 
     const init = f.mock.calls[0]![1] as RequestInit;
     expect(init.method).toBe("PUT");
@@ -147,7 +143,7 @@ describe("fetchProgram", () => {
       isActive: false,
       archivedAt: null,
       createdAt: 1,
-      days: [],
+      exercises: [],
     });
     vi.stubGlobal("fetch", f);
     await fetchProgram("p1", "ru");

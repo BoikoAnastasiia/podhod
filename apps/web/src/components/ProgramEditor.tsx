@@ -1,54 +1,239 @@
+import type { CreateProgramExerciseInput, ProgramExercise, SchemeInput } from "@podhod/schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DayEditor } from "./DayEditor.js";
-import { IconPicker } from "./IconPicker.js";
-import { moved } from "./ReorderButtons.js";
+import { useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
-import { createDay, fetchProgram, reorderDays } from "../lib/api.js";
+import {
+  addExercise,
+  deleteExercise,
+  fetchProgram,
+  reorderExercises,
+  updateExercise,
+} from "../lib/api.js";
 import { programKeys } from "../lib/programKeys.js";
+import { ExercisePicker } from "./ExercisePicker.js";
+import { IconPicker } from "./IconPicker.js";
+import { moved, ReorderButtons } from "./ReorderButtons.js";
+import { SCHEME_DEFAULTS, SchemeEditor } from "./SchemeEditor.js";
+import { SchemeSummary } from "./SchemeSummary.js";
+
+const pill =
+  "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
+
+type FixedScheme = Extract<SchemeInput, { kind: "fixed" }>;
 
 /**
- * The whole program-building surface — title, icon, days, their exercises —
- * independent of where it is framed. The `$programId` route mounts it as a
- * page (mobile, deep links); the `/programs` list mounts the same component
- * inside a dialog on desktop. One editor, two shells, so the two entrances
- * cannot drift apart.
+ * The weight, editable right on the row — the trainer's-sheet interaction:
+ * the sheet says squat, 4×10, and the number you keep touching is the weight.
+ * Commits on blur or Enter; an unparseable or unchanged value quietly reverts
+ * rather than firing a doomed request. Only fixed schemes have a single
+ * weight; the progression kinds render their summary instead.
+ */
+function WeightField({
+  scheme,
+  label,
+  onSave,
+}: {
+  scheme: FixedScheme;
+  label: string;
+  onSave: (scheme: FixedScheme) => void;
+}) {
+  const [text, setText] = useState(String(scheme.weightKg));
+
+  const commit = () => {
+    const value = Number(text.trim());
+    const valid = Number.isFinite(value) && value > 0 && value <= 1000;
+    if (!valid) {
+      setText(String(scheme.weightKg));
+      return;
+    }
+    if (value !== scheme.weightKg) onSave({ ...scheme, weightKg: value });
+  };
+
+  return (
+    <input
+      type="number"
+      inputMode="decimal"
+      step="any"
+      value={text}
+      aria-label={label}
+      data-testid="entry-weight"
+      onChange={(event) => setText(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+      }}
+      className="min-h-tap-min w-20 rounded-row border border-border bg-surface px-2 text-ink tabular-nums"
+    />
+  );
+}
+
+/**
+ * The whole program-building surface — title, icon, its exercises with their
+ * weights — independent of where it is framed. The `$programId` route mounts
+ * it as a page (mobile, deep links); the `/programs` list mounts the same
+ * component inside a dialog on desktop. One editor, two shells, so the two
+ * entrances cannot drift apart.
+ *
+ * A program IS one workout (phase 3d): exercises hang directly off it, and
+ * adding one is a single tap that writes the default 4×10 fixed scheme — the
+ * weight is then the field in front of you.
  */
 export function ProgramEditor({ programId }: { programId: string }) {
   const { t, lang } = useI18n();
   const queryClient = useQueryClient();
+
+  const [pickerOpen, setPickerOpen] = useState(false);
+  /** Which entry's scheme is open in an editor, and which is one click from removal. */
+  const [editingScheme, setEditingScheme] = useState<string | null>(null);
+  const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
 
   const program = useQuery({
     queryKey: programKeys.detail(programId, lang),
     queryFn: () => fetchProgram(programId, lang),
   });
 
+  /**
+   * Invalidating `all` rather than just this detail key: adding or removing
+   * an exercise changes the count the list screen shows, and a stale count
+   * there after editing here is the kind of wrongness nobody reports and
+   * everybody notices.
+   */
   const invalidate = () => queryClient.invalidateQueries({ queryKey: programKeys.all });
 
   /**
-   * One click, no name field: naming a day before it exists is the wrong
-   * order — most days end up "Day 1..3" anyway, and rename sits right on the
-   * card for anyone who cares. The count-based default can collide after a
-   * delete ("Day 2" twice); names are labels, not keys, so that is harmless.
+   * A pick adds immediately with the default 4×10 — configuration never gates
+   * creation. The panel stays open on purpose: adding five exercises in a row
+   * is the common case, and the weight is editable right on the row.
    */
-  const addDay = useMutation({
-    mutationFn: () => createDay(programId, `${t("days.defaultName")} ${days.length + 1}`),
+  const add = useMutation({
+    mutationFn: (input: CreateProgramExerciseInput) => addExercise(programId, input),
     onSuccess: invalidate,
   });
 
-  const reorder = useMutation({
-    mutationFn: (ids: string[]) => reorderDays(programId, ids),
+  const updateEntry = useMutation({
+    mutationFn: (input: { id: string; scheme: SchemeInput }) =>
+      updateExercise(input.id, { scheme: input.scheme }),
+    onSuccess: async () => {
+      setEditingScheme(null);
+      await invalidate();
+    },
+  });
+
+  const removeEntry = useMutation({
+    mutationFn: (id: string) => deleteExercise(id),
+    onSuccess: async () => {
+      setConfirmingRemove(null);
+      await invalidate();
+    },
+  });
+
+  const reorderEntries = useMutation({
+    mutationFn: (ids: string[]) => reorderExercises(programId, ids),
     onSuccess: invalidate,
   });
 
-  const days = program.data?.days ?? [];
+  const entries = program.data?.exercises ?? [];
 
-  const moveDay = (from: number, to: number) => {
+  const moveExercise = (from: number, to: number) => {
     // The API takes the complete ordered list and validates it against the
-    // program's own days before writing, so sending the whole thing is both
-    // what it wants and what makes a replayed request harmless.
-    const ids = moved(days, from, to).map((d) => d.id);
-    reorder.mutate(ids);
+    // program's own entries before writing, so sending the whole thing is
+    // both what it wants and what makes a replayed request harmless.
+    const ids = moved(entries, from, to).map((entry) => entry.id);
+    reorderEntries.mutate(ids);
   };
+
+  const entryRow = (entry: ProgramExercise, index: number) => (
+    <li
+      key={entry.id}
+      data-testid="day-exercise"
+      data-entry-position={entry.position}
+      className="rounded-row border border-border px-3 py-2 text-sm text-ink"
+    >
+      <div className="flex min-h-row-min flex-wrap items-center justify-between gap-2">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-medium" data-testid="entry-name">
+            {entry.name}
+          </span>
+          {entry.scheme.kind === "fixed" ? (
+            <span className="flex items-center gap-1 text-muted tabular-nums">
+              {entry.scheme.sets}×{entry.scheme.reps} ·
+              <WeightField
+                key={`${entry.id}:${entry.scheme.weightKg}`}
+                scheme={entry.scheme}
+                label={t("scheme.field.weightKg")}
+                onSave={(scheme) => updateEntry.mutate({ id: entry.id, scheme })}
+              />
+              {t("scheme.unit.kg")}
+            </span>
+          ) : (
+            <SchemeSummary scheme={entry.scheme} />
+          )}
+        </span>
+        <span className="flex flex-wrap items-center gap-2">
+          <ReorderButtons
+            index={index}
+            count={entries.length}
+            upLabel={t("entry.moveUp").replace("{name}", entry.name)}
+            downLabel={t("entry.moveDown").replace("{name}", entry.name)}
+            onMove={moveExercise}
+          />
+          <button
+            type="button"
+            className={pill}
+            data-testid="edit-entry"
+            onClick={() => setEditingScheme(editingScheme === entry.id ? null : entry.id)}
+          >
+            {t("entry.edit")}
+          </button>
+          {confirmingRemove === entry.id ? (
+            <>
+              <button
+                type="button"
+                className={`${pill} border-error text-error`}
+                data-testid="confirm-remove-entry"
+                onClick={() => removeEntry.mutate(entry.id)}
+              >
+                {t("entry.remove.confirm")}
+              </button>
+              <button
+                type="button"
+                className={pill}
+                onClick={() => setConfirmingRemove(null)}
+              >
+                {t("entry.cancel")}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className={pill}
+              data-testid="remove-entry"
+              onClick={() => setConfirmingRemove(entry.id)}
+            >
+              {t("entry.remove")}
+            </button>
+          )}
+        </span>
+      </div>
+
+      {editingScheme === entry.id && (
+        <div className="mt-3 border-t border-border pt-3">
+          {updateEntry.isError && (
+            <p role="alert" className="mb-2 text-sm text-error">
+              {t("entry.updateFailed")}
+            </p>
+          )}
+          <SchemeEditor
+            initial={entry.scheme}
+            submitLabel={t("entry.save")}
+            pending={updateEntry.isPending}
+            onSubmit={(scheme) => updateEntry.mutate({ id: entry.id, scheme })}
+            onCancel={() => setEditingScheme(null)}
+          />
+        </div>
+      )}
+    </li>
+  );
 
   return (
     <>
@@ -69,33 +254,40 @@ export function ProgramEditor({ programId }: { programId: string }) {
             <IconPicker programId={programId} current={program.data.icon} />
           </div>
 
-          <button
-            type="button"
-            data-testid="add-day"
-            disabled={addDay.isPending}
-            onClick={() => addDay.mutate()}
-            className="mt-6 min-h-tap-min rounded-full bg-accent px-5 text-sm font-semibold text-ink-on-accent disabled:opacity-50"
-          >
-            {t("days.add")}
-          </button>
-
-          {days.length === 0 ? (
-            <div className="mt-8" data-testid="days-empty">
-              <p className="text-muted">{t("programs.dayCount.zero")}</p>
-              <p className="mt-1 text-sm text-muted">{t("days.emptyHint")}</p>
+          {entries.length === 0 ? (
+            <div className="mt-8" data-testid="entries-empty">
+              <p className="text-muted">{t("entries.empty")}</p>
+              <p className="mt-1 text-sm text-muted">{t("entries.emptyHint")}</p>
             </div>
           ) : (
-            <ul className="mt-8 flex flex-col gap-4">
-              {days.map((day, index) => (
-                <DayEditor
-                  key={day.id}
-                  day={day}
-                  index={index}
-                  count={days.length}
-                  onMove={moveDay}
-                />
-              ))}
-            </ul>
+            <ul className="mt-6 flex flex-col gap-2">{entries.map(entryRow)}</ul>
+          )}
+
+          {!pickerOpen && (
+            <button
+              type="button"
+              className={`${pill} mt-4`}
+              data-testid="add-exercise"
+              onClick={() => setPickerOpen(true)}
+            >
+              {t("picker.add")}
+            </button>
+          )}
+
+          {pickerOpen && (
+            <>
+              {add.isError && (
+                <p role="alert" className="mt-4 text-sm text-error">
+                  {t("picker.failed")}
+                </p>
+              )}
+              <ExercisePicker
+                onPick={(exercise) =>
+                  add.mutate({ exerciseId: exercise.id, scheme: SCHEME_DEFAULTS.fixed })
+                }
+                onClose={() => setPickerOpen(false)}
+              />
+            </>
           )}
         </>
       )}

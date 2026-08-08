@@ -57,13 +57,15 @@ export const SCHEME_FIELDS: Record<SchemeKind, readonly FieldSpec[]> = {
  * Sensible starting values per scheme, so switching kind produces a valid
  * scheme immediately rather than a form full of empty required fields.
  *
- * These are training defaults, not arbitrary ones: 2.5 kg is the smallest pair
- * of plates most gyms have; three failures before a deload and a 10% cut are
- * the Starting Strength convention; 8–12 is the most common hypertrophy range;
- * RPE 8 with 5% steps is a standard autoregulated prescription.
+ * These are training defaults, not arbitrary ones: 4 sets is how the owner's
+ * trainer wrote every exercise, and it is what the instant add uses; 2.5 kg is
+ * the smallest pair of plates most gyms have; three failures before a deload
+ * and a 10% cut are the Starting Strength convention; 8–12 is the most common
+ * hypertrophy range; RPE 8 with 5% steps is a standard autoregulated
+ * prescription.
  */
 export const SCHEME_DEFAULTS: Record<SchemeKind, SchemeInput> = {
-  fixed: { kind: "fixed", sets: 3, reps: 10, weightKg: 20 },
+  fixed: { kind: "fixed", sets: 4, reps: 10, weightKg: 20 },
   linear: {
     kind: "linear",
     sets: 3,

@@ -53,8 +53,8 @@ function Landing() {
        * Library link already does that job, and the hero reads calmer as
        * wordmark + one sentence.
        */}
-      <div className="-mx-4 hero-wash">
-        <section className="flex flex-col gap-5 px-4 py-10 md:gap-6 md:py-14 lg:py-16">
+      <div className="-mx-4 hero-wash sm:-mx-8 lg:-mx-16 xl:-mx-28">
+        <section className="flex flex-col gap-5 px-4 py-10 sm:px-8 md:gap-6 md:py-14 lg:px-16 lg:py-16 xl:px-28">
           {/*
            * Revalia (see theme.css) — display face, for the wordmark only.
            * font-normal: the self-hosted file ships just the 400 weight, so

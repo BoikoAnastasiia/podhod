@@ -40,7 +40,13 @@ function Shell() {
          * once ("messy" was the owner's word for it, accurately).
          */}
         <header className="bg-header text-header-ink">
-          <div className="mx-auto flex w-full max-w-page flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3">
+          {/*
+           * The gutter scale below (4 → 8 → 16 → 28) must stay identical on
+           * this box, on <main>, and (negated) on the landing's hero bleed —
+           * three copies of one number. Metacritic-calibrated: ~112px of
+           * breathing room at desktop widths instead of a 16px sliver.
+           */}
+          <div className="mx-auto flex w-full max-w-page flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 sm:px-8 lg:px-16 xl:px-28">
             {/*
              * Revalia (see theme.css) only — the wordmark is the one place
              * this display face is used. font-normal because the
@@ -56,7 +62,7 @@ function Shell() {
             <Nav />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-page px-4 pb-16">
+        <main className="mx-auto w-full max-w-page px-4 pb-16 sm:px-8 lg:px-16 xl:px-28">
           <Outlet />
         </main>
       </div>

@@ -37,38 +37,31 @@ function Landing() {
   });
 
   return (
-    <div className="flex flex-col gap-12 py-8">
+    <div className="flex flex-col gap-12 pb-8">
       {/*
-       * -mx-4 cancels <main>'s own px-4 so the wash bleeds to the edge of
-       * the layout instead of stopping short of it and reading as a
-       * bounded card sitting on the page — that inset was exactly the
-       * "left/right margins" that made the first pass look like a lime
-       * rectangle rather than a wash. px-4 goes back on the section inside
-       * to keep the actual content (wordmark, tagline, CTA) aligned with
-       * the rest of the page.
+       * -mx-4 cancels <main>'s own px-4 so the wash bleeds to the layout's
+       * edge; px-4 goes back on the section inside to keep the content
+       * aligned with the rest of the page. No top padding above this block:
+       * the wash must start flush under the black header band — the earlier
+       * py-8 put a strip of bare canvas between bar and gradient, which
+       * read as three unrelated layers (line, background, wash) instead of
+       * one surface. The CTA is gone with the owner's blessing: the nav's
+       * Library link already does that job, and the hero reads calmer as
+       * wordmark + one sentence.
        */}
       <div className="-mx-4 hero-wash">
-        <section className="flex flex-col gap-10 px-4 py-12 md:gap-14 md:py-20 lg:py-28">
-          <div className="flex flex-col gap-5 md:gap-6">
-            {/*
-             * Revalia (see theme.css) — display face, for the wordmark only.
-             * font-normal: the self-hosted file ships just the 400 weight, so
-             * asking for bold would make the browser synthesize a fake one.
-             * Sized large enough (up to text-9xl) that the distinctive H — the
-             * owner's planned dumbbell-logo letterform — is clearly visible.
-             */}
-            <h1 className="font-wordmark text-5xl font-normal tracking-wide md:text-7xl lg:text-9xl">
-              {t("brand.wordmark")}
-            </h1>
-            <p className="max-w-content text-lg text-muted md:text-xl">{t("landing.tagline")}</p>
-          </div>
-          <Link
-            to="/library"
-            data-testid="landing-cta"
-            className="inline-flex min-h-tap-min w-max items-center rounded-full bg-accent px-8 py-4 text-base font-semibold text-ink-on-accent shadow-cta transition-shadow duration-200 ease-out hover:bg-accent-hover hover:shadow-cta-hover motion-safe:hover:-translate-y-1 md:text-lg"
-          >
-            {t("home.browseLibrary")}
-          </Link>
+        <section className="flex flex-col gap-5 px-4 py-10 md:gap-6 md:py-14 lg:py-16">
+          {/*
+           * Revalia (see theme.css) — display face, for the wordmark only.
+           * font-normal: the self-hosted file ships just the 400 weight, so
+           * asking for bold would make the browser synthesize a fake one.
+           * Capped at text-7xl — the previous text-9xl hero was, in the
+           * owner's words, "overtobig".
+           */}
+          <h1 className="font-wordmark text-4xl font-normal tracking-wide md:text-6xl lg:text-7xl">
+            {t("brand.wordmark")}
+          </h1>
+          <p className="max-w-content text-lg text-muted md:text-xl">{t("landing.tagline")}</p>
         </section>
       </div>
 

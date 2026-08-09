@@ -5,6 +5,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { useRef } from "react";
+import { AddToProgram } from "../../components/AddToProgram.js";
 import { useI18n } from "../../i18n/useI18n.js";
 import { fetchExercise } from "../../lib/api.js";
 import { takeThumbState } from "../../lib/flipStore.js";
@@ -118,6 +119,7 @@ function Detail() {
       <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-12">
         <div className="flex flex-col gap-4 lg:w-2/5 lg:shrink-0">
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{data.name}</h1>
+          <AddToProgram exerciseId={data.id} />
 
           <div className="flex flex-1 flex-col gap-6 rounded-card bg-surface p-6 shadow-card lg:p-8">
             <div className="flex flex-wrap gap-2">

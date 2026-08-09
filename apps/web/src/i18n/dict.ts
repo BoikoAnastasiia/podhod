@@ -109,6 +109,11 @@ export const dict = {
     "landing.coming.body":
       "A guided session player that walks you through each workout set by set and computes your next targets from your history. Not built yet — everything above is live.",
     "footer.github": "View source on GitHub",
+    "addTo.button": "Add to program",
+    "addTo.title": "Which program?",
+    "addTo.done": "Added to {name}.",
+    "addTo.empty": "No programs yet — create one:",
+    "addTo.failed": "Couldn't add it. Try again.",
     "detail.instructions": "Instructions",
     "detail.secondaryMuscles": "Also works",
     "auth.signIn": "Sign in",
@@ -257,6 +262,11 @@ export const dict = {
     "landing.coming.body":
       "Режим тренировки, который ведёт по сетам и сам считает следующие цели по вашей истории. Пока не реализовано — всё остальное выше уже работает.",
     "footer.github": "Исходный код на GitHub",
+    "addTo.button": "Добавить в программу",
+    "addTo.title": "В какую программу?",
+    "addTo.done": "Добавлено в «{name}».",
+    "addTo.empty": "Программ пока нет — создайте новую:",
+    "addTo.failed": "Не удалось добавить. Попробуйте ещё раз.",
     "detail.instructions": "Инструкция",
     "detail.secondaryMuscles": "Также задействует",
     "auth.signIn": "Войти",

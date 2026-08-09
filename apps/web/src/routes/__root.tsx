@@ -31,52 +31,34 @@ function Shell() {
   return (
     <I18nContext.Provider value={i18n}>
       <div className="min-h-dvh bg-canvas text-ink">
-        <div className="mx-auto w-full max-w-page">
-          <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border px-4 py-4">
-            <div className="flex flex-wrap items-center gap-3">
-              {/*
-               * Revalia (see theme.css) only — the wordmark is the one
-               * place this display face is used. font-normal because the
-               * self-hosted file has just the one (400) weight; asking for
-               * bold here would make the browser synthesize a fake one.
-               * Kept at text-base (not larger): measured at 320px, the nav
-               * pill plus the Russian "Упражнения" label plus the EN/RU
-               * toggle already fill the row, and text-lg or text-xl here
-               * pushed the header past 320px and failed
-               * locale.spec.ts's narrow-viewport overflow check. This is
-               * the header — the hero heading below is where Revalia's H
-               * gets room to actually read.
-               *
-               * The header and this group both wrap (flex-wrap, not a
-               * fixed single row) since Phase 1b added a session-aware
-               * pill to Nav whose width varies with the signed-in
-               * account's email — a budget that can no longer be measured
-               * once at 320px and assumed fixed. Wrapping is what keeps
-               * locale.spec.ts's overflow check honest as Nav grows in
-               * Phase 2 instead of re-measuring the header every time.
-               */}
-              <Link
-                to="/"
-                className="flex min-h-tap-min items-center rounded-full px-2 font-wordmark text-base font-normal"
-              >
-                {i18n.t("brand.wordmark")}
-              </Link>
-              <Nav />
-            </div>
-            <button
-              type="button"
-              data-testid="lang-toggle"
-              onClick={() => change(lang === "en" ? "ru" : "en")}
-              aria-label={lang === "en" ? i18n.t("lang.switchToRu") : i18n.t("lang.switchToEn")}
-              className="min-h-tap-min rounded-full bg-surface px-4 text-sm"
+        {/*
+         * The band is full-bleed; the *content* inside it shares the same
+         * max-w-page + px-4 box as <main>, so the header's edges and the
+         * page's edges land on the same lines — the earlier layout bounded
+         * the whole header at max-w-page, which left the bar's content
+         * narrower than the viewport and wider than the page content at
+         * once ("messy" was the owner's word for it, accurately).
+         */}
+        <header className="bg-header text-header-ink">
+          <div className="mx-auto flex w-full max-w-page flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3">
+            {/*
+             * Revalia (see theme.css) only — the wordmark is the one place
+             * this display face is used. font-normal because the
+             * self-hosted file has just the one (400) weight; asking for
+             * bold would make the browser synthesize a fake one.
+             */}
+            <Link
+              to="/"
+              className="flex min-h-tap-min items-center font-wordmark text-lg font-normal"
             >
-              {lang === "en" ? "RU" : "EN"}
-            </button>
-          </header>
-          <main className="px-4 pb-16">
-            <Outlet />
-          </main>
-        </div>
+              {i18n.t("brand.wordmark")}
+            </Link>
+            <Nav />
+          </div>
+        </header>
+        <main className="mx-auto w-full max-w-page px-4 pb-16">
+          <Outlet />
+        </main>
       </div>
     </I18nContext.Provider>
   );

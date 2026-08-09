@@ -18,7 +18,12 @@
 }
 
 @theme {
-  --color-canvas: #f8f9f5;
+  /*
+   * Cool light gray, replacing the original warm #f8f9f5 — the owner's call
+   * (2026-08-09): the lime accent clashed with a beige-leaning canvas. A
+   * cool neutral lets white cards separate and lime pop.
+   */
+  --color-canvas: #f4f5f6;
   --color-surface: #ffffff;
   --color-ink: #171717;
   --color-muted: #737373;
@@ -27,6 +32,16 @@
   --color-accent-hover: #dfff75;
   --color-error: #ff3b30;
   --color-ink-on-accent: #171717;
+
+  /*
+   * The header band is black by identity, not by theme — like metacritic's.
+   * Deliberately NOT overridden in the dark block below: on the dark canvas
+   * (#121212) the #171717 bar still reads as its own band. White text and
+   * the lime hover underline both measure comfortably on it (lime on
+   * near-black is ~16:1; white is ~17:1).
+   */
+  --color-header: #171717;
+  --color-header-ink: #ffffff;
 
   /*
    * Distinct from --color-accent-hover even though both are #dfff75 today:

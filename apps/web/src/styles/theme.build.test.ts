@@ -42,7 +42,7 @@ describe("theme.css build output", () => {
       const outsideDarkBlock = css.replace(darkBlock, "");
 
       // Light canvas must render unconditionally.
-      expect(outsideDarkBlock).toContain("#f8f9f5");
+      expect(outsideDarkBlock).toContain("#f4f5f6");
       // Dark canvas must be gated — it must not leak outside the media query
       // (that leak, with the dark value winning at :root, was the defect).
       expect(outsideDarkBlock).not.toContain("#121212");

@@ -8,7 +8,10 @@ import { UserMenu } from "./UserMenu.js";
  * Every destination the top bar links to. Adding one later is one entry
  * here, not a redesign: this is the only place a route list is spelled out.
  */
-const NAV_ITEMS = [{ to: "/library", labelKey: "nav.library" }] as const satisfies {
+const NAV_ITEMS = [
+  { to: "/library", labelKey: "nav.library" },
+  { to: "/blog", labelKey: "nav.blog" },
+] as const satisfies {
   to: string;
   labelKey: DictKey;
 }[];

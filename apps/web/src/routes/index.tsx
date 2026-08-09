@@ -2,6 +2,7 @@ import { ATTRIBUTION } from "@podhod/core";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ExerciseCard } from "../components/ExerciseCard.js";
+import { BLOG_POSTS } from "../data/blogPosts.js";
 import { exerciseNounForms } from "../i18n/dict.js";
 import { useI18n } from "../i18n/useI18n.js";
 import { fetchExerciseCount, fetchExercises } from "../lib/api.js";
@@ -99,6 +100,32 @@ function Landing() {
           <h2 className="text-xl font-bold tracking-tight">{t("landing.coming.heading")}</h2>
           <p className="text-muted">{t("landing.coming.body")}</p>
         </div>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xl font-bold tracking-tight">{t("landing.blog.heading")}</h2>
+          <Link to="/blog" className="link-inline text-sm" data-testid="landing-blog-all">
+            {t("landing.blog.all")}
+          </Link>
+        </div>
+        <ul className="grid gap-4 sm:grid-cols-3">
+          {BLOG_POSTS.map((post) => (
+            <li key={post.slug}>
+              <Link
+                to="/blog/$slug"
+                params={{ slug: post.slug }}
+                data-testid="landing-blog-card"
+                className="group flex h-full flex-col gap-2 rounded-card bg-surface p-6 shadow-card transition-shadow duration-200 ease-out hover:shadow-card-hover"
+              >
+                <h3 className="font-semibold text-ink decoration-accent decoration-2 underline-offset-4 group-hover:underline">
+                  {post.title[lang]}
+                </h3>
+                <p className="text-sm text-muted">{post.excerpt[lang]}</p>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <footer className="flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">

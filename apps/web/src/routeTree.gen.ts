@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as LibraryIdRouteImport } from './routes/library/$id'
 import { Route as ProgramsIndexRouteImport } from './routes/programs/index'
@@ -36,6 +38,16 @@ const SignInRoute = SignInRouteImport.update({
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryIndexRoute = LibraryIndexRouteImport.update({
@@ -64,8 +76,10 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/library/$id': typeof LibraryIdRoute
   '/programs/$programId': typeof ProgramsProgramIdRoute
+  '/blog/': typeof BlogIndexRoute
   '/library/': typeof LibraryIndexRoute
   '/programs/': typeof ProgramsIndexRoute
 }
@@ -74,8 +88,10 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/library/$id': typeof LibraryIdRoute
   '/programs/$programId': typeof ProgramsProgramIdRoute
+  '/blog': typeof BlogIndexRoute
   '/library': typeof LibraryIndexRoute
   '/programs': typeof ProgramsIndexRoute
 }
@@ -85,8 +101,10 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/library/$id': typeof LibraryIdRoute
   '/programs/$programId': typeof ProgramsProgramIdRoute
+  '/blog/': typeof BlogIndexRoute
   '/library/': typeof LibraryIndexRoute
   '/programs/': typeof ProgramsIndexRoute
 }
@@ -97,8 +115,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-in'
     | '/sign-up'
+    | '/blog/$slug'
     | '/library/$id'
     | '/programs/$programId'
+    | '/blog/'
     | '/library/'
     | '/programs/'
   fileRoutesByTo: FileRoutesByTo
@@ -107,8 +127,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-in'
     | '/sign-up'
+    | '/blog/$slug'
     | '/library/$id'
     | '/programs/$programId'
+    | '/blog'
     | '/library'
     | '/programs'
   id:
@@ -117,8 +139,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-in'
     | '/sign-up'
+    | '/blog/$slug'
     | '/library/$id'
     | '/programs/$programId'
+    | '/blog/'
     | '/library/'
     | '/programs/'
   fileRoutesById: FileRoutesById
@@ -128,8 +152,10 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   LibraryIdRoute: typeof LibraryIdRoute
   ProgramsProgramIdRoute: typeof ProgramsProgramIdRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   LibraryIndexRoute: typeof LibraryIndexRoute
   ProgramsIndexRoute: typeof ProgramsIndexRoute
 }
@@ -162,6 +188,20 @@ declare module '@tanstack/react-router' {
       path: '/sign-up'
       fullPath: '/sign-up'
       preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library/': {
@@ -200,8 +240,10 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  BlogSlugRoute: BlogSlugRoute,
   LibraryIdRoute: LibraryIdRoute,
   ProgramsProgramIdRoute: ProgramsProgramIdRoute,
+  BlogIndexRoute: BlogIndexRoute,
   LibraryIndexRoute: LibraryIndexRoute,
   ProgramsIndexRoute: ProgramsIndexRoute,
 }

@@ -1,15 +1,14 @@
 import { ATTRIBUTION } from "@podhod/core";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ExerciseCard } from "../components/ExerciseCard.js";
 import { BLOG_POSTS } from "../data/blogPosts.js";
+import { POPULAR_EXERCISE_IDS } from "../data/popularExercises.js";
 import { exerciseNounForms } from "../i18n/dict.js";
 import { useI18n } from "../i18n/useI18n.js";
-import { fetchExerciseCount, fetchExercises } from "../lib/api.js";
+import { fetchExercise, fetchExerciseCount } from "../lib/api.js";
 
 const GITHUB_URL = "https://github.com/BoikoAnastasiia/podhod";
-/** Enough to prove the library is real without turning the hero into a second library page. */
-const PROOF_SAMPLE_SIZE = 10;
 
 /**
  * `/` today: a landing page, because there is no auth and no programs yet to
@@ -28,14 +27,18 @@ function Landing() {
     queryFn: fetchExerciseCount,
   });
 
-  // A distinct query key from the library route's ["exercises", lang, q,
-  // bodyPart] — this is a plain (non-infinite) query for a small fixed
-  // sample, and sharing a key with an infinite query would have the two
-  // caches fight over the same cache entry's shape.
-  const sample = useQuery({
-    queryKey: ["exercises", "landing", lang],
-    queryFn: () => fetchExercises({ lang, limit: PROOF_SAMPLE_SIZE }),
+  /**
+   * Curated rather than sampled: the row is "most popular", not "first ten
+   * alphabetically". One small detail fetch per id — they cache per exercise
+   * and per language, and the detail page reuses the same key shape.
+   */
+  const popular = useQueries({
+    queries: POPULAR_EXERCISE_IDS.map((id) => ({
+      queryKey: ["exercise", id, lang],
+      queryFn: () => fetchExercise(id, lang),
+    })),
   });
+  const popularItems = popular.flatMap((query) => (query.data ? [query.data] : []));
 
   return (
     <div className="flex flex-col gap-12 pb-8">
@@ -80,14 +83,19 @@ function Landing() {
             </p>
           )}
         </div>
-        {sample.data && sample.data.items.length > 0 && (
-          <ul className="grid grid-exercises gap-3">
-            {sample.data.items.map((exercise) => (
-              <li key={exercise.id}>
-                <ExerciseCard exercise={exercise} label={term} />
-              </li>
-            ))}
-          </ul>
+        {popularItems.length > 0 && (
+          <>
+            <h2 className="text-xl font-bold tracking-tight">
+              {t("landing.popular.heading")}
+            </h2>
+            <ul className="grid grid-exercises gap-3" data-testid="popular-exercises">
+              {popularItems.map((exercise) => (
+                <li key={exercise.id}>
+                  <ExerciseCard exercise={exercise} label={term} />
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </section>
 

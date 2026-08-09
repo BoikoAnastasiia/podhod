@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import type { DictKey } from "../i18n/useI18n.js";
 import { useI18n } from "../i18n/useI18n.js";
 import { authClient } from "../lib/authClient.js";
-import { UserMenu } from "./UserMenu.js";
 
 /**
  * Every destination the top bar links to. Adding one later is one entry
@@ -43,7 +42,16 @@ export function Nav() {
   const { data: session, isPending } = authClient.useSession();
 
   return (
-    <nav className="flex flex-wrap items-center gap-x-5 gap-y-1" aria-label={t("menu.navLabel")}>
+    /*
+     * Ordered by the root header: on narrow viewports this nav wraps to its
+     * own full-width second row (order-3 w-full) while the avatar stays up
+     * beside the wordmark; from sm it slots back between wordmark and
+     * avatar as a right-hand group (sm:ml-auto).
+     */
+    <nav
+      className="order-3 flex w-full flex-wrap items-center gap-x-5 gap-y-1 sm:order-2 sm:ml-auto sm:w-auto"
+      aria-label={t("menu.navLabel")}
+    >
       {NAV_ITEMS.map((item) => (
         <Link
           key={item.to}
@@ -78,7 +86,6 @@ export function Nav() {
           {t("auth.signIn")}
         </Link>
       )}
-      <UserMenu />
     </nav>
   );
 }

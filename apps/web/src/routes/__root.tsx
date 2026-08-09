@@ -3,6 +3,7 @@ import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Footer } from "../components/Footer.js";
 import { Nav } from "../components/Nav.js";
+import { UserMenu } from "../components/UserMenu.js";
 import { buildI18n, I18nContext } from "../i18n/useI18n.js";
 
 const STORAGE_KEY = "podhod.lang";
@@ -49,7 +50,13 @@ function Shell() {
            * three copies of one number. Metacritic-calibrated: ~112px of
            * breathing room at desktop widths instead of a 16px sliver.
            */}
-          <div className="mx-auto flex w-full max-w-page flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 sm:px-8 lg:px-16 xl:px-28">
+          {/*
+           * Three ordered pieces, rearranged by viewport. Narrow: wordmark
+           * left and avatar right share the first row (the mobile app-bar
+           * convention), the nav wraps to a full-width second row. From sm:
+           * one row — wordmark left, then nav+avatar as one right group.
+           */}
+          <div className="mx-auto flex w-full max-w-page flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 sm:px-8 lg:px-16 xl:px-28">
             {/*
              * Revalia (see theme.css) only — the wordmark is the one place
              * this display face is used. font-normal because the
@@ -58,11 +65,14 @@ function Shell() {
              */}
             <Link
               to="/"
-              className="flex min-h-tap-min items-center font-wordmark text-lg font-normal"
+              className="order-1 flex min-h-tap-min items-center font-wordmark text-lg font-normal"
             >
               {i18n.t("brand.wordmark")}
             </Link>
             <Nav />
+            <span className="order-2 ml-auto sm:order-3 sm:ml-0">
+              <UserMenu />
+            </span>
           </div>
         </header>
         <main className="mx-auto w-full max-w-page flex-1 px-4 pb-16 sm:px-8 lg:px-16 xl:px-28">

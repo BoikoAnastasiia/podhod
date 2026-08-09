@@ -80,7 +80,7 @@ function Programs() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { program: openProgramId } = Route.useSearch();
-  const [name, setName] = useState("");
+  const [search, setSearch] = useState("");
 
   // A dialog link opened on a phone forwards to the page shell — the same
   // editor, framed for the viewport it actually has.
@@ -121,14 +121,17 @@ function Programs() {
    */
   const invalidate = () => queryClient.invalidateQueries({ queryKey: programKeys.all });
 
+  /**
+   * One click, no name form — the same inversion the rest of the app made:
+   * creation is never gated on configuration. The program arrives as «Новая
+   * программа», opens its editor immediately, and the title there is
+   * click-to-rename for anyone who wants a real name.
+   */
   const create = useMutation({
-    mutationFn: (programName: string) => createProgram({ name: programName, notes: null }),
+    mutationFn: () => createProgram({ name: t("programs.defaultName"), notes: null }),
     onSuccess: async (created) => {
-      setName("");
       setCreateError(false);
       await invalidate();
-      // Creating and then hunting for what you created was the complaint that
-      // shaped this screen: a new program opens its editor immediately.
       if (created) openProgram(created);
     },
     onError: () => setCreateError(true),
@@ -157,9 +160,20 @@ function Programs() {
     },
   });
 
+  /**
+   * One search over everything with a title — the user's own programs and
+   * the ready-made templates alike. Client-side: both lists are already in
+   * memory, and a substring match is what "search by title" means here.
+   */
+  const q = search.trim().toLowerCase();
+  const matches = (title: string) => q === "" || title.toLowerCase().includes(q);
+
   const all = programs.data?.programs ?? [];
-  const live = all.filter((p) => p.archivedAt === null);
-  const archived = all.filter((p) => p.archivedAt !== null);
+  const live = all.filter((p) => p.archivedAt === null && matches(p.name));
+  const archived = all.filter((p) => p.archivedAt !== null && matches(p.name));
+  const visibleTemplates = PROGRAM_TEMPLATES.filter((tpl) => matches(tpl.name[lang]));
+  const nothingMatches =
+    q !== "" && live.length === 0 && archived.length === 0 && visibleTemplates.length === 0;
 
   const exerciseCountLabel = (program: ProgramSummary) =>
     program.exerciseCount === 0
@@ -220,7 +234,7 @@ function Programs() {
       )}
       {/* One column of compact card-rows on mobile, two-up cards on desktop. */}
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-        {PROGRAM_TEMPLATES.map(templateCard)}
+        {visibleTemplates.map(templateCard)}
       </ul>
     </section>
   );
@@ -335,39 +349,26 @@ function Programs() {
     <div className="mx-auto w-full max-w-content px-4 py-8">
       <h1 className="text-2xl font-semibold text-ink">{t("programs.heading")}</h1>
 
-      <form
-        className="mt-6 flex flex-wrap items-end gap-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const trimmed = name.trim();
-          if (trimmed.length > 0) create.mutate(trimmed);
-        }}
-      >
-        <label className="flex-1">
-          <span className="block text-sm font-medium text-muted">
-            {t("programs.create.label")}
-          </span>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={t("programs.create.placeholder")}
-            data-testid="program-name"
-            maxLength={80}
-            className="mt-1 min-h-tap-min w-full rounded-row border border-border bg-surface px-4 text-ink"
-          />
-        </label>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={t("programs.search")}
+          aria-label={t("programs.search")}
+          data-testid="program-search"
+          className="min-h-tap-min flex-1 rounded-full border-2 border-border bg-surface px-5 text-ink shadow-search outline-none transition-colors duration-150 placeholder:text-muted focus:border-accent"
+        />
         <button
-          type="submit"
+          type="button"
           data-testid="create-program"
-          // Trimmed, because a name of spaces passes a length check and the
-          // server rejects it — a disabled button explains that before the
-          // round trip does.
-          disabled={name.trim().length === 0 || create.isPending}
+          disabled={create.isPending}
+          onClick={() => create.mutate()}
           className="min-h-tap-min rounded-full bg-accent px-5 text-sm font-semibold text-ink-on-accent disabled:opacity-50"
         >
-          {t("programs.create.submit")}
+          {t("programs.new")}
         </button>
-      </form>
+      </div>
       {createError && (
         <p role="alert" className="mt-2 text-sm text-error">
           {t("programs.create.failed")}
@@ -385,7 +386,7 @@ function Programs() {
         </div>
       )}
 
-      {programs.isSuccess && all.length === 0 && (
+      {programs.isSuccess && all.length === 0 && q === "" && (
         <>
           {/* A new account lands here with nothing — and "take a ready-made
               program" is a better first step than reading what a program is,
@@ -398,9 +399,15 @@ function Programs() {
         </>
       )}
 
+      {nothingMatches && (
+        <p className="mt-8 text-muted" data-testid="search-empty">
+          {t("library.empty")}
+        </p>
+      )}
+
       {live.length > 0 && <ul className="mt-8 flex flex-col gap-4">{live.map(card)}</ul>}
 
-      {programs.isSuccess && all.length > 0 && gallery}
+      {programs.isSuccess && (all.length > 0 || q !== "") && visibleTemplates.length > 0 && gallery}
 
       {archived.length > 0 && (
         <section className="mt-10">

@@ -8,6 +8,7 @@ import {
   fetchProgram,
   reorderExercises,
   updateExercise,
+  updateProgram,
 } from "../lib/api.js";
 import { programKeys } from "../lib/programKeys.js";
 import { ExercisePicker } from "./ExercisePicker.js";
@@ -86,6 +87,8 @@ export function ProgramEditor({ programId }: { programId: string }) {
   /** Which entry's scheme is open in an editor, and which is one click from removal. */
   const [editingScheme, setEditingScheme] = useState<string | null>(null);
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
+  /** The title mid-rename, or null when it is just a heading. */
+  const [renaming, setRenaming] = useState<string | null>(null);
 
   const program = useQuery({
     queryKey: programKeys.detail(programId, lang),
@@ -130,6 +133,14 @@ export function ProgramEditor({ programId }: { programId: string }) {
   const reorderEntries = useMutation({
     mutationFn: (ids: string[]) => reorderExercises(programId, ids),
     onSuccess: invalidate,
+  });
+
+  const rename = useMutation({
+    mutationFn: (name: string) => updateProgram(programId, { name }),
+    onSuccess: async () => {
+      setRenaming(null);
+      await invalidate();
+    },
   });
 
   const entries = program.data?.exercises ?? [];
@@ -248,10 +259,49 @@ export function ProgramEditor({ programId }: { programId: string }) {
                 {program.data.icon}
               </span>
             )}
-            <h1 className="text-2xl font-semibold text-ink" data-testid="program-title">
-              {program.data.name}
-            </h1>
-            <IconPicker programId={programId} current={program.data.icon} />
+            {renaming !== null ? (
+              <form
+                className="flex flex-1 flex-wrap items-center gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const name = renaming.trim();
+                  if (name.length > 0) rename.mutate(name);
+                }}
+              >
+                <input
+                  value={renaming}
+                  onChange={(event) => setRenaming(event.target.value)}
+                  data-testid="program-name-input"
+                  maxLength={80}
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- the field
+                  // replaces the control that was just clicked; leaving focus on
+                  // a button that no longer exists strands keyboard users.
+                  autoFocus
+                  className="min-h-tap-min flex-1 rounded-row border border-border bg-surface px-3 text-xl font-semibold text-ink"
+                />
+                <button type="submit" className={pill} data-testid="save-program-name">
+                  {t("programs.save")}
+                </button>
+                <button type="button" className={pill} onClick={() => setRenaming(null)}>
+                  {t("entry.cancel")}
+                </button>
+              </form>
+            ) : (
+              <>
+                <h1 className="text-2xl font-semibold text-ink" data-testid="program-title">
+                  {program.data.name}
+                </h1>
+                <button
+                  type="button"
+                  className={pill}
+                  data-testid="rename-program"
+                  onClick={() => setRenaming(program.data.name)}
+                >
+                  {t("programs.rename")}
+                </button>
+                <IconPicker programId={programId} current={program.data.icon} />
+              </>
+            )}
           </div>
 
           {entries.length === 0 ? (

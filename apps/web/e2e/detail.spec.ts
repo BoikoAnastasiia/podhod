@@ -24,12 +24,14 @@ test("the animation frame is 180px, matching the licence cap", async ({ page }) 
   expect(Math.round(box!.height)).toBeLessThanOrEqual(180);
 });
 
-test("the back affordance returns to the library", async ({ page }) => {
+test("the header's Library link returns to the library", async ({ page }) => {
+  // The dedicated back pill is gone (owner's call): the nav link and the
+  // browser's own Back cover the same journeys without a duplicate control.
   await page.goto("/library");
   await page.getByTestId("exercise-card").first().click();
   await expect(page.getByTestId("exercise-gif")).toBeVisible();
 
-  await page.getByTestId("back-to-library").click();
+  await page.getByRole("link", { name: "Library", exact: true }).click();
 
   await expect(page).toHaveURL(/\/library$/);
   await expect(page.getByTestId("exercise-card").first()).toBeVisible();

@@ -1,7 +1,7 @@
 import { useGSAP } from "@gsap/react";
 import { ATTRIBUTION, mediaUrl } from "@podhod/core";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { useRef } from "react";
@@ -63,20 +63,12 @@ function Detail() {
     { scope: root, dependencies: [data] },
   );
 
-  const backLink = (
-    <Link
-      to="/library"
-      data-testid="back-to-library"
-      className="inline-flex min-h-tap-min w-max items-center gap-2 rounded-full bg-surface px-5 text-sm font-medium text-ink"
-    >
-      ← {t("nav.library")}
-    </Link>
-  );
+  // No dedicated back button: the header's Library link is always one glance
+  // away, and the browser's own Back covers the literal "go back" gesture.
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-4">
-        {backLink}
+      <div className="flex flex-col gap-4 py-8">
         <div className="flex flex-col items-start gap-3">
           {/* The one place accent-red belongs today: the error state. */}
           <p className="text-error">{t("library.error")}</p>
@@ -94,17 +86,14 @@ function Detail() {
 
   if (!data) {
     return (
-      <div className="flex flex-col gap-4">
-        {backLink}
+      <div className="flex flex-col gap-4 py-8">
         <p className="text-muted">{t("library.loading")}</p>
       </div>
     );
   }
 
   return (
-    <div ref={root} className="flex flex-col gap-6">
-      {backLink}
-
+    <div ref={root} className="flex flex-col gap-6 py-8">
       {/*
        * Two columns from lg up. Both stretch to equal height
        * (lg:items-stretch) so the shorter side's card grows to meet the

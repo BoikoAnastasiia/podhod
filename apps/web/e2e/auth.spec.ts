@@ -1,4 +1,23 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+/**
+ * Identity and sign-out live inside the user-menu panel since the 3e design
+ * pass, so asserting a session means opening the menu first. Escape closes
+ * it again so the next step starts from a clean header.
+ */
+async function expectSignedIn(page: Page, email?: string): Promise<void> {
+  await page.getByTestId("user-menu").click();
+  const identity = page.getByTestId("nav-identity");
+  await expect(identity).toBeVisible();
+  if (email) await expect(identity).toContainText(email);
+  await page.keyboard.press("Escape");
+}
+
+async function signOut(page: Page): Promise<void> {
+  await page.getByTestId("user-menu").click();
+  await page.getByTestId("sign-out").click();
+  await expect(page.getByTestId("sign-in-link")).toBeVisible();
+}
 
 /**
  * Every test that creates an account uses its own email, generated per test
@@ -25,8 +44,9 @@ test("sign-up creates an account and lands signed in", async ({ page }) => {
   // sends the visitor home — assert both the URL and that the nav actually
   // carries a session, not just that navigation happened.
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByTestId("nav-identity")).toBeVisible();
-  await expect(page.getByTestId("sign-out")).toBeVisible();
+  await expectSignedIn(page);
+  // The signed-out CTA is gone from the bar once a session exists.
+  await expect(page.getByTestId("sign-in-link")).toHaveCount(0);
 });
 
 test("sign-in with correct credentials succeeds", async ({ page }) => {
@@ -35,10 +55,9 @@ test("sign-in with correct credentials succeeds", async ({ page }) => {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByTestId("sign-up-submit").click();
-  await expect(page.getByTestId("nav-identity")).toBeVisible();
+  await expectSignedIn(page);
 
-  await page.getByTestId("sign-out").click();
-  await expect(page.getByTestId("sign-in-link")).toBeVisible();
+  await signOut(page);
 
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
@@ -46,7 +65,7 @@ test("sign-in with correct credentials succeeds", async ({ page }) => {
   await page.getByTestId("sign-in-submit").click();
 
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByTestId("nav-identity")).toContainText(email);
+  await expectSignedIn(page, email);
 });
 
 test("sign-in with a wrong password shows an error and does not sign in", async ({ page }) => {
@@ -55,8 +74,8 @@ test("sign-in with a wrong password shows an error and does not sign in", async 
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByTestId("sign-up-submit").click();
-  await expect(page.getByTestId("nav-identity")).toBeVisible();
-  await page.getByTestId("sign-out").click();
+  await expectSignedIn(page);
+  await signOut(page);
 
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
@@ -74,12 +93,14 @@ test("sign-out returns to a signed-out state", async ({ page }) => {
   await page.getByLabel("Email").fill(freshEmail("signout"));
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByTestId("sign-up-submit").click();
-  await expect(page.getByTestId("nav-identity")).toBeVisible();
+  await expectSignedIn(page);
 
-  await page.getByTestId("sign-out").click();
+  await signOut(page);
 
   await expect(page.getByTestId("sign-in-link")).toBeVisible();
-  await expect(page.getByTestId("nav-identity")).not.toBeVisible();
+  // The menu of a signed-out visitor carries no identity row at all.
+  await page.getByTestId("user-menu").click();
+  await expect(page.getByTestId("nav-identity")).toHaveCount(0);
 });
 
 test("/settings redirects when signed out and renders when signed in", async ({ page }) => {
@@ -96,7 +117,7 @@ test("/settings redirects when signed out and renders when signed in", async ({ 
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByTestId("sign-up-submit").click();
-  await expect(page.getByTestId("nav-identity")).toBeVisible();
+  await expectSignedIn(page);
 
   await page.goto("/settings");
   await expect(page).toHaveURL(/\/settings$/);
@@ -205,7 +226,7 @@ test("/settings shows the connected sign-in method and no unlink control with on
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByTestId("sign-up-submit").click();
-  await expect(page.getByTestId("nav-identity")).toBeVisible();
+  await expectSignedIn(page);
 
   await page.goto("/settings");
   await expect(page.getByTestId("settings-methods")).toBeVisible();
@@ -225,7 +246,7 @@ test("the Link Google control in Settings is reachable and starts a redirect to 
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByTestId("sign-up-submit").click();
-  await expect(page.getByTestId("nav-identity")).toBeVisible();
+  await expectSignedIn(page);
 
   await page.goto("/settings");
   const linkButton = page.getByTestId("link-google");

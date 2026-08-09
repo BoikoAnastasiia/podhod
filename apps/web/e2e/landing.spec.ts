@@ -9,8 +9,12 @@ test("the landing page renders a real, non-placeholder home screen", async ({ pa
   const stat = page.getByTestId("landing-exercise-count");
   await expect(stat).toContainText(/\d/, { timeout: 5000 });
 
-  // Proof the content is real: actual exercise thumbnails from the API.
-  await expect(page.getByTestId("exercise-card").first()).toBeVisible();
+  // The curated most-popular row, fetched by id from the API.
+  await expect(page.getByTestId("popular-exercises")).toBeVisible();
+  await expect(page.getByTestId("exercise-card")).toHaveCount(8);
+
+  // Three blog teasers link into the blog section.
+  await expect(page.getByTestId("landing-blog-card")).toHaveCount(3);
 
   await expect(page.getByTestId("attribution")).toContainText("Gym visual");
   await expect(page.getByRole("link", { name: /GitHub/i })).toHaveAttribute(
@@ -19,17 +23,26 @@ test("the landing page renders a real, non-placeholder home screen", async ({ pa
   );
 });
 
-test("the CTA reaches the library", async ({ page }) => {
+test("a popular card reaches its exercise page", async ({ page }) => {
+  // The old hero CTA is gone (the nav's Library link covers it); the cards
+  // themselves are the landing's path into the library now.
   await page.goto("/");
-  await page.getByTestId("landing-cta").click();
-  await expect(page).toHaveURL(/\/library$/);
-  await expect(page.getByTestId("exercise-card").first()).toBeVisible();
+  await page.getByTestId("exercise-card").first().click();
+  await expect(page).toHaveURL(/\/library\/\d+$/);
+  await expect(page.getByTestId("exercise-steps")).toBeVisible();
+});
+
+test("a blog teaser reaches its article", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("landing-blog-card").first().click();
+  await expect(page).toHaveURL(/\/blog\/[a-z-]+$/);
+  await expect(page.getByTestId("blog-article")).toBeVisible();
 });
 
 test("landing has no horizontal overflow at 320px", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/");
-  await expect(page.getByTestId("landing-cta")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "PODHOD", level: 1 })).toBeVisible();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
@@ -62,4 +75,11 @@ test("the nav marks the active route and navigates", async ({ page }) => {
   // The wordmark still returns home from any route.
   await page.getByRole("link", { name: "PODHOD" }).click();
   await expect(page).toHaveURL(/\/$/);
+});
+
+test("the blog lists its three starter articles", async ({ page }) => {
+  await page.goto("/blog");
+  await expect(page.getByTestId("blog-card")).toHaveCount(3);
+  await page.getByTestId("blog-card").first().click();
+  await expect(page.getByTestId("blog-article")).toBeVisible();
 });

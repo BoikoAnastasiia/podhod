@@ -17,7 +17,7 @@ async function signUp(page: Page, tag: string): Promise<void> {
   await page.getByLabel("Email").fill(freshEmail(tag));
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByTestId("sign-up-submit").click();
-  await expect(page.getByTestId("nav-identity")).toBeVisible();
+  await expect(page.getByTestId("sign-in-link")).toHaveCount(0);
 }
 
 test("/programs redirects to sign-in when signed out", async ({ page }) => {
@@ -39,10 +39,15 @@ test("builds a workout from nothing", async ({ page }) => {
   // The empty state leads with the ready-made programs.
   await expect(page.getByTestId("template-gallery")).toBeVisible();
 
-  // Creating opens the editor immediately — no hunting for the new card.
-  await page.getByTestId("program-name").fill("monday");
+  // Creating opens the editor immediately — no form, a default name.
   await page.getByTestId("create-program").click();
   await expect(page.getByTestId("program-dialog")).toBeVisible();
+  await expect(page.getByTestId("program-title")).toHaveText("New program");
+
+  // The title renames in place — the only naming step left, and optional.
+  await page.getByTestId("rename-program").click();
+  await page.getByTestId("program-name-input").fill("monday");
+  await page.getByTestId("save-program-name").click();
   await expect(page.getByTestId("program-title")).toHaveText("monday");
   await expect(page).toHaveURL(/\?program=/);
   await expect(page.getByTestId("entries-empty")).toBeVisible();
@@ -98,10 +103,13 @@ test("activating a second program deactivates the first in the UI", async ({ pag
   await page.goto("/programs");
 
   for (const name of ["First", "Second"]) {
-    await page.getByTestId("program-name").fill(name);
     await page.getByTestId("create-program").click();
-    // Each create opens its editor; close it to get back to the list.
+    // Each create opens its editor; rename there, close, back to the list.
     await expect(page.getByTestId("program-dialog")).toBeVisible();
+    await page.getByTestId("rename-program").click();
+    await page.getByTestId("program-name-input").fill(name);
+    await page.getByTestId("save-program-name").click();
+    await expect(page.getByTestId("program-title")).toHaveText(name);
     await page.getByTestId("close-program-dialog").click();
     await expect(page.getByTestId("program-card").filter({ hasText: name })).toBeVisible();
   }
@@ -123,7 +131,6 @@ test("an added exercise's scheme can be edited and the entry removed", async ({ 
   await signUp(page, "programs-edit");
   await page.goto("/programs");
 
-  await page.getByTestId("program-name").fill("Edit Me");
   await page.getByTestId("create-program").click();
   await expect(page.getByTestId("program-dialog")).toBeVisible();
 
@@ -187,17 +194,66 @@ test.describe("on a phone viewport", () => {
     await signUp(page, "programs-mobile");
     await page.goto("/programs");
 
-    await page.getByTestId("program-name").fill("Phone Plan");
     await page.getByTestId("create-program").click();
 
     // Same editor, framed as a page — a dialog would cram the whole builder
     // into a keyhole on this width.
     await expect(page).toHaveURL(/\/programs\/[A-Za-z0-9_-]+$/);
     await expect(page.getByTestId("program-dialog")).toHaveCount(0);
-    await expect(page.getByTestId("program-title")).toHaveText("Phone Plan");
+    await expect(page.getByTestId("program-title")).toHaveText("New program");
     await page.getByTestId("add-exercise").click();
     await page.getByTestId("picker-search").fill("push");
     await page.getByTestId("picker-result").first().click();
     await expect(page.getByTestId("day-exercise")).toHaveCount(1);
   });
+});
+
+test("search filters saved programs and templates together", async ({ page }) => {
+  await signUp(page, "programs-search");
+  await page.goto("/programs");
+
+  await page.getByTestId("create-program").click();
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
+  await page.getByTestId("rename-program").click();
+  await page.getByTestId("program-name-input").fill("monday");
+  await page.getByTestId("save-program-name").click();
+  await expect(page.getByTestId("program-title")).toHaveText("monday");
+  await page.getByTestId("close-program-dialog").click();
+
+  // "leg" matches only the Leg Day template — the saved program hides.
+  await page.getByTestId("program-search").fill("leg");
+  await expect(page.getByTestId("program-card")).toHaveCount(0);
+  await expect(page.getByTestId("template-card")).toHaveCount(1);
+  await expect(page.getByTestId("template-card")).toContainText("Leg Day");
+
+  // "monday" matches only the saved program — the gallery hides entirely.
+  await page.getByTestId("program-search").fill("monday");
+  await expect(page.getByTestId("program-card")).toHaveCount(1);
+  await expect(page.getByTestId("template-card")).toHaveCount(0);
+
+  // Nothing at all says so, rather than rendering an empty page silently.
+  await page.getByTestId("program-search").fill("zzzzz");
+  await expect(page.getByTestId("search-empty")).toBeVisible();
+});
+
+test("the detail page's add-to-program flow builds a new program", async ({ page }) => {
+  // Signed out, the button routes through sign-in instead of failing.
+  await page.goto("/library/0025");
+  await page.getByTestId("add-to-program").click();
+  await expect(page).toHaveURL(/\/sign-in\?redirect=/);
+
+  await signUp(page, "add-from-detail");
+  await page.goto("/library/0025");
+  await page.getByTestId("add-to-program").click();
+  await expect(page.getByTestId("add-to-program-dialog")).toBeVisible();
+
+  await page.getByTestId("add-to-new-program").click();
+  await expect(page.getByTestId("add-to-program-done")).toBeVisible();
+  await page.getByTestId("open-added-program").click();
+
+  // The copy is a real program holding the exercise at the 4×10 default.
+  await expect(page.getByTestId("program-title")).toHaveText("New program");
+  await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+  await expect(page.getByTestId("day-exercise")).toContainText("bench press");
+  await expect(page.getByTestId("entry-weight")).toHaveValue("20");
 });

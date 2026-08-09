@@ -8,6 +8,9 @@ export const dict = {
     // a brand name, not a translated word (see docs/design.md).
     "brand.wordmark": "PODHOD",
     "nav.library": "Library",
+    "menu.label": "Account menu",
+    "menu.navLabel": "Primary",
+    "menu.language": "Language",
     "nav.programs": "Programs",
     "programs.heading": "Programs",
     "programs.empty.title": "No programs yet",
@@ -147,6 +150,9 @@ export const dict = {
   ru: {
     "brand.wordmark": "PODHOD",
     "nav.library": "Упражнения",
+    "menu.label": "Меню аккаунта",
+    "menu.navLabel": "Основная",
+    "menu.language": "Язык",
     "nav.programs": "\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b",
     "programs.heading": "\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b",
     "programs.empty.title": "\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c \u043f\u043e\u043a\u0430 \u043d\u0435\u0442",

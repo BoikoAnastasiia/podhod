@@ -1,4 +1,3 @@
-import { ATTRIBUTION } from "@podhod/core";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ExerciseCard } from "../components/ExerciseCard.js";
@@ -7,8 +6,6 @@ import { POPULAR_EXERCISE_IDS } from "../data/popularExercises.js";
 import { exerciseNounForms } from "../i18n/dict.js";
 import { useI18n } from "../i18n/useI18n.js";
 import { fetchExercise, fetchExerciseCount } from "../lib/api.js";
-
-const GITHUB_URL = "https://github.com/BoikoAnastasiia/podhod";
 
 /**
  * `/` today: a landing page, because there is no auth and no programs yet to
@@ -136,17 +133,6 @@ function Landing() {
         </ul>
       </section>
 
-      <footer className="flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
-        <p data-testid="attribution">{ATTRIBUTION}</p>
-        <a
-          href={GITHUB_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="link-inline inline-flex min-h-tap-min w-max items-center"
-        >
-          {t("footer.github")}
-        </a>
-      </footer>
     </div>
   );
 }

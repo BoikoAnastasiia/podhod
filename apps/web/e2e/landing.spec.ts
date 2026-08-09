@@ -16,7 +16,12 @@ test("the landing page renders a real, non-placeholder home screen", async ({ pa
   // Three blog teasers link into the blog section.
   await expect(page.getByTestId("landing-blog-card")).toHaveCount(3);
 
-  await expect(page.getByTestId("attribution")).toContainText("Gym visual");
+  // Both footer credits are links now, and the footer belongs to the root
+  // layout — pinned to the viewport bottom on every page, not just here.
+  await expect(page.getByTestId("footer-attribution")).toHaveAttribute(
+    "href",
+    /gymvisual\.com/,
+  );
   await expect(page.getByRole("link", { name: /GitHub/i })).toHaveAttribute(
     "href",
     /github\.com/,

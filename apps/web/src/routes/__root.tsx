@@ -1,6 +1,7 @@
 import type { Lang } from "@podhod/schema";
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Footer } from "../components/Footer.js";
 import { Nav } from "../components/Nav.js";
 import { buildI18n, I18nContext } from "../i18n/useI18n.js";
 
@@ -30,7 +31,9 @@ function Shell() {
 
   return (
     <I18nContext.Provider value={i18n}>
-      <div className="min-h-dvh bg-canvas text-ink">
+      {/* flex-col + flex-1 on <main> pins the footer to the viewport bottom
+          on short pages instead of letting it float mid-canvas. */}
+      <div className="flex min-h-dvh flex-col bg-canvas text-ink">
         {/*
          * The band is full-bleed; the *content* inside it shares the same
          * max-w-page + px-4 box as <main>, so the header's edges and the
@@ -62,9 +65,10 @@ function Shell() {
             <Nav />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-page px-4 pb-16 sm:px-8 lg:px-16 xl:px-28">
+        <main className="mx-auto w-full max-w-page flex-1 px-4 pb-16 sm:px-8 lg:px-16 xl:px-28">
           <Outlet />
         </main>
+        <Footer />
       </div>
     </I18nContext.Provider>
   );

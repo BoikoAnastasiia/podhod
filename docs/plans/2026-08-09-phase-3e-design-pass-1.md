@@ -6,6 +6,11 @@
 
 **Constraints carried over:** no new dependencies; lime is never *text* on light surfaces (1.14–1.21:1 measured — the header being black is what lets nav hover use lime); `@theme`-in-media-query and `@layer base` traps per theme.css comments; grep built CSS for new utilities; all strings bilingual.
 
+**Progress (2026-08-09):** All eight tasks done and committed. 298 unit tests
++ 39 e2e green; verified on real screens at 1440 and 320 (header wraps to two
+clean rows on narrow viewports; no horizontal overflow). The theme guard test
+now pins the new `#f4f5f6` canvas.
+
 ## Tasks
 
 1. **Tokens + header shell.** `--color-canvas: #F4F5F6` (light only). New tokens `--color-header: #171717`, `--color-header-ink: #ffffff` (same in both themes — the bar is black by identity, not by theme). Root layout: the header becomes a full-bleed black band; inside it the same `max-w-page px-4` container `<main>` uses, so header content and page content share edges (the "messy, narrower than the header" complaint). Wordmark white; no border-b — the band is its own edge. Commit: "Give the app a black header aligned with its content".

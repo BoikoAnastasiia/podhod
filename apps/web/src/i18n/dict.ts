@@ -7,6 +7,7 @@ export const dict = {
     // wordmark and is intentionally identical in both locales below — it's
     // a brand name, not a translated word (see docs/design.md).
     "brand.wordmark": "PODHOD",
+    "nav.home": "Home",
     "nav.library": "Library",
     "menu.label": "Account menu",
     "menu.navLabel": "Primary",
@@ -160,6 +161,7 @@ export const dict = {
   },
   ru: {
     "brand.wordmark": "PODHOD",
+    "nav.home": "Главная",
     "nav.library": "Упражнения",
     "menu.label": "Меню аккаунта",
     "menu.navLabel": "Основная",

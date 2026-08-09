@@ -61,13 +61,20 @@ test("thumbnails on the landing page respect the 180px licence cap", async ({ pa
 
 test("the nav marks the active route and navigates", async ({ page }) => {
   await page.goto("/");
+  const homeLink = page.getByRole("link", { name: "Home", exact: true });
   const libraryLink = page.getByRole("link", { name: "Library", exact: true });
+  await expect(homeLink).toHaveAttribute("aria-current", "page");
   await expect(libraryLink).toBeVisible();
   await expect(libraryLink).not.toHaveAttribute("aria-current", "page");
 
   await libraryLink.click();
   await expect(page).toHaveURL(/\/library$/);
   await expect(page.getByRole("link", { name: "Library", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  // Home only matches exactly — it must not stay lit on other routes.
+  await expect(page.getByRole("link", { name: "Home", exact: true })).not.toHaveAttribute(
     "aria-current",
     "page",
   );

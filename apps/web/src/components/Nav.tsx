@@ -9,6 +9,7 @@ import { UserMenu } from "./UserMenu.js";
  * here, not a redesign: this is the only place a route list is spelled out.
  */
 const NAV_ITEMS = [
+  { to: "/", labelKey: "nav.home" },
   { to: "/library", labelKey: "nav.library" },
   { to: "/blog", labelKey: "nav.blog" },
 ] as const satisfies {
@@ -49,6 +50,9 @@ export function Nav() {
           to={item.to}
           className={navLink}
           activeProps={{ className: "underline" }}
+          // Without exact matching, "/" counts as active on every route and
+          // Home would be permanently underlined.
+          activeOptions={{ exact: item.to === "/" }}
         >
           {t(item.labelKey)}
         </Link>

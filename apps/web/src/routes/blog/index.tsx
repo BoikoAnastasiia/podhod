@@ -9,28 +9,42 @@ function Blog() {
   const { t, lang } = useI18n();
 
   return (
-    <div className="mx-auto w-full max-w-content px-4 py-8">
+    <div className="py-8">
       <h1 className="text-2xl font-semibold text-ink">{t("blog.heading")}</h1>
-      <ul className="mt-6 flex flex-col gap-4">
+      {/* Cards, not rows — with the cover image when an article has one. */}
+      <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {BLOG_POSTS.map((post) => (
           <li key={post.slug}>
             <Link
               to="/blog/$slug"
               params={{ slug: post.slug }}
               data-testid="blog-card"
-              className="group flex flex-col gap-2 rounded-card bg-surface p-6 shadow-card transition-shadow duration-200 ease-out hover:shadow-card-hover"
+              className="group flex h-full flex-col overflow-hidden rounded-card bg-surface shadow-card transition-shadow duration-200 ease-out hover:shadow-card-hover"
             >
-              <h2 className="text-lg font-semibold text-ink decoration-accent decoration-2 underline-offset-4 group-hover:underline">
-                {post.title[lang]}
-              </h2>
-              <p className="text-sm text-muted">{post.excerpt[lang]}</p>
-              <time dateTime={post.date} className="text-xs text-muted">
-                {new Date(post.date).toLocaleDateString(lang, {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </time>
+              {post.image && (
+                <img
+                  src={post.image.src}
+                  alt=""
+                  width={1200}
+                  height={675}
+                  loading="lazy"
+                  data-testid="blog-card-image"
+                  className="aspect-video w-full object-cover"
+                />
+              )}
+              <span className="flex flex-col gap-2 p-6">
+                <h2 className="text-lg font-semibold text-ink decoration-accent decoration-2 underline-offset-4 group-hover:underline">
+                  {post.title[lang]}
+                </h2>
+                <p className="text-sm text-muted">{post.excerpt[lang]}</p>
+                <time dateTime={post.date} className="text-xs text-muted">
+                  {new Date(post.date).toLocaleDateString(lang, {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </time>
+              </span>
             </Link>
           </li>
         ))}

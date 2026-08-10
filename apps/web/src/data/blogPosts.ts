@@ -7,6 +7,12 @@ export type BlogPost = {
   excerpt: Localized;
   /** ISO date, rendered with toLocaleDateString in the visitor's language. */
   date: string;
+  /**
+   * Self-hosted under public/blog/ — never hotlinked, per the project's
+   * no-third-party-requests stance. creditUrl links the source (Unsplash
+   * licence: credit appreciated, hotlinking not required).
+   */
+  image?: { src: string; creditUrl: string };
   paragraphs: Localized[];
 };
 
@@ -29,6 +35,11 @@ export const BLOG_POSTS: BlogPost[] = [
       ru: "Линейная, двойная прогрессия, RPE — что означают четыре схемы в PODHOD и когда какая уместна.",
     },
     date: "2026-08-01",
+    image: {
+      src: "/blog/how-progression-works.jpg",
+      creditUrl:
+        "https://unsplash.com/photos/detailed-anatomical-model-showing-human-back-muscles-and-skeletal-structure-FtQ7Hs6c5Lk",
+    },
     paragraphs: [
       {
         en: "Getting stronger is not about doing more every day — it is about a rule that decides when to add weight and when to hold. That rule is what PODHOD calls a progression scheme, and every exercise in a program carries one.",

@@ -93,6 +93,8 @@ test("the nav marks the active route and navigates", async ({ page }) => {
 test("the blog lists its three starter articles", async ({ page }) => {
   await page.goto("/blog");
   await expect(page.getByTestId("blog-card")).toHaveCount(3);
+  // The first article carries a self-hosted cover image on its card.
+  await expect(page.getByTestId("blog-card-image")).toBeVisible();
   await page.getByTestId("blog-card").first().click();
   await expect(page.getByTestId("blog-article")).toBeVisible();
 });

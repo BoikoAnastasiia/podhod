@@ -30,6 +30,27 @@ function BlogPost() {
               day: "numeric",
             })}
           </time>
+          {post.image && (
+            <figure className="mt-6">
+              <img
+                src={post.image.src}
+                alt=""
+                width={1200}
+                height={675}
+                className="aspect-video w-full rounded-card object-cover"
+              />
+              <figcaption className="mt-2 text-xs text-muted">
+                <a
+                  href={post.image.creditUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link-inline"
+                >
+                  Unsplash
+                </a>
+              </figcaption>
+            </figure>
+          )}
           <div className="mt-6 flex flex-col gap-4">
             {post.paragraphs.map((paragraph, index) => (
               <p key={index} className="leading-relaxed text-ink">

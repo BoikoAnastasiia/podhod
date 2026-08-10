@@ -84,8 +84,9 @@ test("the nav marks the active route and navigates", async ({ page }) => {
     "page",
   );
 
-  // The wordmark still returns home from any route.
-  await page.getByRole("link", { name: "PODHOD" }).click();
+  // The wordmark still returns home from any route. Exact: the blog teaser
+  // cards mention PODHOD in their text and would collide on a loose match.
+  await page.getByRole("link", { name: "PODHOD", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
 });
 

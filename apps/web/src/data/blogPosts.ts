@@ -25,14 +25,14 @@ export const BLOG_POSTS: BlogPost[] = [
       ru: "Как на самом деле работают схемы прогрессии",
     },
     excerpt: {
-      en: "Linear, double progression, RPE — what the four schemes in Подход mean and when each one earns its place.",
-      ru: "Линейная, двойная прогрессия, RPE — что означают четыре схемы в Подходе и когда какая уместна.",
+      en: "Linear, double progression, RPE — what the four schemes in PODHOD mean and when each one earns its place.",
+      ru: "Линейная, двойная прогрессия, RPE — что означают четыре схемы в PODHOD и когда какая уместна.",
     },
     date: "2026-08-01",
     paragraphs: [
       {
-        en: "Getting stronger is not about doing more every day — it is about a rule that decides when to add weight and when to hold. That rule is what Подход calls a progression scheme, and every exercise in a program carries one.",
-        ru: "Стать сильнее — не значит делать больше каждый день. Это правило, которое решает, когда добавить вес, а когда подождать. Такое правило в Подходе называется схемой прогрессии, и она есть у каждого упражнения в программе.",
+        en: "Getting stronger is not about doing more every day — it is about a rule that decides when to add weight and when to hold. That rule is what PODHOD calls a progression scheme, and every exercise in a program carries one.",
+        ru: "Стать сильнее — не значит делать больше каждый день. Это правило, которое решает, когда добавить вес, а когда подождать. Такое правило в PODHOD называется схемой прогрессии, и она есть у каждого упражнения в программе.",
       },
       {
         en: "Linear progression is the classic: hit your sets and reps, add 2.5 kg next time. Miss three sessions in a row, take ten percent off and rebuild. It works spectacularly well for the first months of barbell training.",
@@ -47,8 +47,8 @@ export const BLOG_POSTS: BlogPost[] = [
         ru: "Работа по RPE саморегулируется: вы целитесь в ощущение усилия — 8 из 10 значит «в запасе два повторения» — и вес подстраивается под день, который у вас есть на самом деле, а не под день из таблицы.",
       },
       {
-        en: "And sometimes a fixed prescription is right — a kettlebell only comes in one size at a time. Подход lets every exercise pick its own rule, which is exactly how a good coach writes a sheet.",
-        ru: "А иногда правильный выбор — фиксированная схема: гиря бывает только одного веса за раз. В Подходе каждое упражнение выбирает своё правило — именно так хороший тренер и пишет программу.",
+        en: "And sometimes a fixed prescription is right — a kettlebell only comes in one size at a time. PODHOD lets every exercise pick its own rule, which is exactly how a good coach writes a sheet.",
+        ru: "А иногда правильный выбор — фиксированная схема: гиря бывает только одного веса за раз. В приложении PODHOD каждое упражнение выбирает своё правило — именно так хороший тренер и пишет программу.",
       },
     ],
   },
@@ -77,8 +77,8 @@ export const BLOG_POSTS: BlogPost[] = [
         ru: "Лёгкий старт платит сложные проценты: суставы адаптируются, техника репетируется на простых весах, а схема добавляет нагрузку быстрее, чем вы решились бы сами — не пропуская ни одной ступеньки.",
       },
       {
-        en: "In Подход a new exercise arrives as 4 sets of 10 at a modest default — change the weight right on the row, and let the scheme take it from there.",
-        ru: "В Подходе новое упражнение появляется как 4 подхода по 10 с умеренным весом по умолчанию — поменяйте вес прямо в строке, а дальше пусть работает схема.",
+        en: "In PODHOD a new exercise arrives as 4 sets of 10 at a modest default — change the weight right on the row, and let the scheme take it from there.",
+        ru: "В приложении PODHOD новое упражнение появляется как 4 подхода по 10 с умеренным весом по умолчанию — поменяйте вес прямо в строке, а дальше пусть работает схема.",
       },
     ],
   },
@@ -103,8 +103,8 @@ export const BLOG_POSTS: BlogPost[] = [
         ru: "Четыре дня и больше — начинает работать сплит, и «верх/низ» — самый щадящий вариант: каждая половина тела всё ещё тренируется дважды в неделю, а сессии остаются достаточно короткими.",
       },
       {
-        en: "In Подход a program is one workout, the way a coach writes one sheet per day — so your week is just the set of programs you keep: «понедельник», «день ног», whatever your calendar actually looks like.",
-        ru: "В Подходе программа — это одна тренировка, как один лист от тренера на день. Ваша неделя — просто набор программ: «понедельник», «день ног» — как на самом деле выглядит ваш календарь.",
+        en: "In PODHOD a program is one workout, the way a coach writes one sheet per day — so your week is just the set of programs you keep: 'monday', 'leg day', whatever your calendar actually looks like.",
+        ru: "В приложении PODHOD программа — это одна тренировка, как один лист от тренера на день. Ваша неделя — просто набор программ: «понедельник», «день ног» — как на самом деле выглядит ваш календарь.",
       },
       {
         en: "Start from a ready-made workout, swap what your gym cannot support, and let consistency — not ambition — pick the shape.",

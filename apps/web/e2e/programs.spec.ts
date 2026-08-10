@@ -17,6 +17,10 @@ async function signUp(page: Page, tag: string): Promise<void> {
   await page.getByLabel("Email").fill(freshEmail(tag));
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByTestId("sign-up-submit").click();
+  // A positive signal, not an absence: autoSignIn lands the fresh account on
+  // the home page. (Asserting sign-in-link count 0 passed vacuously while
+  // the session query was still pending, racing the next navigation.)
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("sign-in-link")).toHaveCount(0);
 }
 

@@ -38,7 +38,7 @@ function Landing() {
   const popularItems = popular.flatMap((query) => (query.data ? [query.data] : []));
 
   return (
-    <div className="flex flex-col gap-12 pb-8">
+    <div className="flex flex-col gap-8 pb-8">
       {/*
        * -mx-4 cancels <main>'s own px-4 so the wash bleeds to the layout's
        * edge; px-4 goes back on the section inside to keep the content
@@ -50,8 +50,12 @@ function Landing() {
        * Library link already does that job, and the hero reads calmer as
        * wordmark + one sentence.
        */}
+      {/* Tight on purpose (owner's call): the tall hero read as a void
+          between the tagline and the content. Wordmark + one sentence,
+          modest padding, and the popular row starts within the first
+          viewport. */}
       <div className="-mx-4 hero-wash sm:-mx-8 lg:-mx-16 xl:-mx-28">
-        <section className="flex flex-col gap-5 px-4 py-10 sm:px-8 md:gap-6 md:py-14 lg:px-16 lg:py-16 xl:px-28">
+        <section className="flex flex-col gap-4 px-4 py-8 sm:px-8 md:py-10 lg:px-16 xl:px-28">
           {/*
            * Revalia (see theme.css) — display face, for the wordmark only.
            * font-normal: the self-hosted file ships just the 400 weight, so

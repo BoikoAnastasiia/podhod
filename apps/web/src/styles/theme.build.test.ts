@@ -36,17 +36,29 @@ describe("theme.css build output", () => {
       // Tailwind hoists the nested @theme and the @media wrapper disappears.
       expect(css).toContain("prefers-color-scheme:dark");
 
-      const darkBlockMatch = css.match(/@media\(prefers-color-scheme:dark\)\{[\s\S]*?\}\}/);
-      expect(darkBlockMatch).not.toBeNull();
-      const darkBlock = darkBlockMatch![0];
-      const outsideDarkBlock = css.replace(darkBlock, "");
+      /*
+       * Dark values are legitimate behind exactly two gates: any
+       * prefers-color-scheme:dark media block (the "Auto" path) and any
+       * rule whose selector carries [data-theme=dark] (the explicit user
+       * choice). Strip both kinds of block, and whatever remains must be
+       * pure light theme — a dark value surviving the strip is the
+       * unconditional-override defect this test exists to catch.
+       */
+      const mediaBlocks = css.match(/@media\(prefers-color-scheme:dark\)\{[\s\S]*?\}\}/g) ?? [];
+      expect(mediaBlocks.length).toBeGreaterThan(0);
+      let outsideGates = css;
+      for (const block of mediaBlocks) outsideGates = outsideGates.replace(block, "");
+      const attrRules = outsideGates.match(/[^{}]*\[data-theme=dark\][^{]*\{[^{}]*\}/g) ?? [];
+      expect(attrRules.length).toBeGreaterThan(0);
+      for (const rule of attrRules) outsideGates = outsideGates.replace(rule, "");
 
       // Light canvas must render unconditionally.
-      expect(outsideDarkBlock).toContain("#f4f5f6");
-      // Dark canvas must be gated — it must not leak outside the media query
-      // (that leak, with the dark value winning at :root, was the defect).
-      expect(outsideDarkBlock).not.toContain("#121212");
-      expect(darkBlock).toContain("#121212");
+      expect(outsideGates).toContain("#f4f5f6");
+      // Dark canvas must not leak outside the two gates (that leak, with
+      // the dark value winning at :root, was the original defect).
+      expect(outsideGates).not.toContain("#121212");
+      expect(mediaBlocks.some((b) => b.includes("#121212"))).toBe(true);
+      expect(attrRules.some((r) => r.includes("#121212"))).toBe(true);
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }

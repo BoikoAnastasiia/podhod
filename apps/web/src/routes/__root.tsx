@@ -5,6 +5,11 @@ import { Footer } from "../components/Footer.js";
 import { Nav } from "../components/Nav.js";
 import { UserMenu } from "../components/UserMenu.js";
 import { buildI18n, I18nContext } from "../i18n/useI18n.js";
+import {
+  THEME_STORAGE_KEY,
+  ThemeContext,
+  type ThemeChoice,
+} from "../lib/themeContext.js";
 
 const STORAGE_KEY = "podhod.lang";
 
@@ -28,10 +33,29 @@ function Shell() {
     setLang(next);
   };
 
+  const [theme, setThemeState] = useState<ThemeChoice>(() => {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    return stored === "light" || stored === "dark" ? stored : "system";
+  });
+
+  // The attribute, not a class: theme.css gates its dark values on
+  // [data-theme] — absent means "let prefers-color-scheme decide".
+  useEffect(() => {
+    if (theme === "system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  const setTheme = (next: ThemeChoice) => {
+    if (next === "system") localStorage.removeItem(THEME_STORAGE_KEY);
+    else localStorage.setItem(THEME_STORAGE_KEY, next);
+    setThemeState(next);
+  };
+
   const i18n = buildI18n(lang, change);
 
   return (
     <I18nContext.Provider value={i18n}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {/* flex-col + flex-1 on <main> pins the footer to the viewport bottom
           on short pages instead of letting it float mid-canvas. */}
       <div className="flex min-h-dvh flex-col bg-canvas text-ink">
@@ -80,6 +104,7 @@ function Shell() {
         </main>
         <Footer />
       </div>
+    </ThemeContext.Provider>
     </I18nContext.Provider>
   );
 }

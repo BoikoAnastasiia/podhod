@@ -204,7 +204,23 @@
 @utility hero-wash {
   background-image: var(--gradient-hero-wash);
 
+  /*
+   * Two dark gates, one value: the media query serves the "Auto" theme
+   * choice (guarded so an explicit light choice beats a dark OS), and the
+   * data-theme selector serves an explicit dark choice on a light OS. The
+   * duplication is deliberate — a shared mixin does not exist at this layer,
+   * and the pair must stay in lockstep with the :root variable gates below.
+   */
   @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) & {
+      background-image: linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-hero-wash) 7%, transparent) 0%,
+        transparent 65%
+      );
+    }
+  }
+  :root[data-theme="dark"] & {
     background-image: linear-gradient(
       to bottom,
       color-mix(in srgb, var(--color-hero-wash) 7%, transparent) 0%,
@@ -247,6 +263,12 @@
    * declarations in the same layer, so the media query is what decides.
    */
   @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) & {
+      color: var(--color-accent);
+      text-decoration-color: var(--color-accent);
+    }
+  }
+  :root[data-theme="dark"] & {
     color: var(--color-accent);
     text-decoration-color: var(--color-accent);
   }
@@ -260,8 +282,15 @@
  * resolve var(--color-canvas) at use time, so overriding the variable suffices.
  */
 @layer base {
+  /*
+   * The dark values exist twice, behind two different gates, and MUST stay
+   * identical: the media query is the "Auto" path (an explicit light choice
+   * opts out via :not), and [data-theme="dark"] is the explicit choice the
+   * user-menu toggle writes onto <html>. Neither block may nest an @theme —
+   * see the hoisting warning below.
+   */
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --color-canvas: #121212;
       --color-surface: #1c1c1c;
       --color-ink: #f2f2ed;
@@ -279,6 +308,15 @@
        * and text on lime must stay near-black in both themes.
        */
     }
+  }
+  :root[data-theme="dark"] {
+    --color-canvas: #121212;
+    --color-surface: #1c1c1c;
+    --color-ink: #f2f2ed;
+    --color-muted: #a3a3a3;
+    --color-border: #2a2a2a;
+    --color-chip-border: #2e2e2e;
+    --color-chip-hover: #26331a;
   }
 }
 

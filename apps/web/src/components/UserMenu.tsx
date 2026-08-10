@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
 import { authClient } from "../lib/authClient.js";
+import { useTheme } from "../lib/themeContext.js";
 
 const segment = (active: boolean) =>
   active
@@ -22,6 +23,7 @@ const segment = (active: boolean) =>
  */
 export function UserMenu() {
   const { t, lang, setLang } = useI18n();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const { data: session, isPending } = authClient.useSession();
   const [open, setOpen] = useState(false);
@@ -122,6 +124,30 @@ export function UserMenu() {
               >
                 RU
               </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {t("menu.theme")}
+            </span>
+            <div
+              role="group"
+              aria-label={t("menu.theme")}
+              className="flex rounded-full border border-border p-1"
+            >
+              {(["system", "light", "dark"] as const).map((choice) => (
+                <button
+                  key={choice}
+                  type="button"
+                  aria-pressed={theme === choice}
+                  data-testid={`theme-${choice}`}
+                  onClick={() => setTheme(choice)}
+                  className={segment(theme === choice)}
+                >
+                  {t(`theme.${choice}`)}
+                </button>
+              ))}
             </div>
           </div>
 

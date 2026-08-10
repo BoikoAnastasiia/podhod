@@ -38,6 +38,29 @@ test("the toggle shows both languages and marks the active one", async ({ page }
   await expect(page.getByTestId("lang-en")).toHaveAttribute("aria-pressed", "false");
 });
 
+test("the theme choice applies immediately and survives a reload", async ({ page }) => {
+  await page.goto("/library");
+  await page.getByTestId("user-menu").click();
+
+  // Explicit dark: the attribute lands on <html> and the canvas actually
+  // repaints — asserting the computed colour catches a broken CSS gate that
+  // a bare attribute check would miss.
+  await page.getByTestId("theme-dark").click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  const darkCanvas = await page.evaluate(
+    () => getComputedStyle(document.documentElement).getPropertyValue("--color-canvas").trim(),
+  );
+  expect(darkCanvas).toBe("#121212");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  // Back to Auto: the attribute goes away and the OS preference decides.
+  await page.getByTestId("user-menu").click();
+  await page.getByTestId("theme-system").click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
+});
+
 test("Russian labels do not overflow a narrow viewport", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/library");

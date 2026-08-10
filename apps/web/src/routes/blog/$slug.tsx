@@ -9,12 +9,22 @@ function BlogPost() {
   const { t, lang } = useI18n();
 
   const post = BLOG_POSTS.find((p) => p.slug === slug);
+  const others = [...BLOG_POSTS]
+    .filter((p) => p.slug !== slug)
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   return (
-    <div className="mx-auto w-full max-w-content px-4 py-8">
-      <Link to="/blog" className="text-sm text-muted underline-offset-4 hover:underline">
-        ← {t("blog.heading")}
-      </Link>
+    /*
+     * Two columns from lg, MDN-style: the article keeps its reading measure,
+     * and the empty right side becomes a rail of the other articles. Below
+     * lg the rail stacks under the article, where a sidebar would squeeze
+     * the prose.
+     */
+    <div className="mx-auto flex w-full max-w-content flex-col gap-10 py-8 lg:mx-0 lg:max-w-none lg:flex-row lg:justify-center">
+      <div className="w-full lg:max-w-content">
+        <Link to="/blog" className="text-sm text-muted underline-offset-4 hover:underline">
+          ← {t("blog.heading")}
+        </Link>
 
       {!post ? (
         // A stale or mistyped slug: say so rather than rendering an empty
@@ -61,6 +71,29 @@ function BlogPost() {
             ))}
           </div>
         </article>
+      )}
+      </div>
+
+      {others.length > 0 && (
+        <aside className="w-full shrink-0 lg:sticky lg:top-6 lg:w-64 lg:self-start lg:pt-10">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+            {t("blog.more")}
+          </h2>
+          <ul className="mt-3 flex flex-col gap-3 border-l border-border pl-4">
+            {others.map((other) => (
+              <li key={other.slug}>
+                <Link
+                  to="/blog/$slug"
+                  params={{ slug: other.slug }}
+                  data-testid="more-article"
+                  className="text-sm font-medium text-ink decoration-accent decoration-2 underline-offset-4 hover:underline"
+                >
+                  {other.title[lang]}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </aside>
       )}
     </div>
   );

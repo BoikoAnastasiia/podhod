@@ -169,4 +169,74 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "cardio-the-daily-medicine",
+    title: {
+      en: "Cardio: the closest thing to a youth elixir",
+      ru: "Кардио: самое близкое к эликсиру молодости",
+    },
+    excerpt: {
+      en: "Not a fat-loss chore — a requirement for a healthy heart, and the cheapest way to wake your body up.",
+      ru: "Не повинность для похудения, а необходимость для здорового сердца — и самый дешёвый способ разбудить тело.",
+    },
+    date: "2026-08-09",
+    image: {
+      src: "/blog/cardio-the-daily-medicine.jpg",
+      credit: "Huckster",
+      creditUrl: "https://unsplash.com/photos/two-men-running-at-park-V62UrdknDCA",
+    },
+    paragraphs: [
+      {
+        en: "Strength training gets the glory, but cardio is not optional — it is maintenance for the one muscle you cannot skip. The heart is a pump, and like any pump it stays efficient only when it is regularly asked to work. That ask is cardio, whatever form it takes.",
+        ru: "Вся слава достаётся силовым, но кардио — не опция. Это обслуживание единственной мышцы, которую нельзя пропустить. Сердце — насос, и, как любой насос, оно остаётся эффективным, только когда его регулярно просят поработать. Эта просьба и есть кардио — в любой форме.",
+      },
+      {
+        en: "It also earns its keep the same morning you do it: circulation picks up, the head clears, the body switches on. If there is a youth elixir on sale anywhere, a steady conditioning habit is the closest thing to it — it keeps the engine young while everything else ages politely.",
+        ru: "Окупается оно в то же утро: разгоняется кровообращение, проясняется голова, тело включается. Если где-то и продаётся эликсир молодости, то регулярное кардио — самое близкое к нему: оно сохраняет двигатель молодым, пока всё остальное вежливо стареет.",
+      },
+      {
+        en: "Our pick for the best all-round option is running: it loads the legs, the core, the arms and the lungs at once, needs no machine and no membership, and scales from a gentle jog to intervals as your base grows.",
+        ru: "Наш выбор лучшего универсального варианта — бег: он нагружает ноги, корпус, руки и лёгкие одновременно, не требует ни тренажёра, ни абонемента и масштабируется от лёгкой трусцы до интервалов по мере роста базы.",
+      },
+      {
+        en: "Start embarrassingly small — twenty minutes, conversational pace, twice a week — and treat it like brushing your teeth. The progression schemes will take care of your lifts; this takes care of the machine doing the lifting.",
+        ru: "Начните до смешного скромно — двадцать минут, разговорный темп, дважды в неделю — и относитесь к этому как к чистке зубов. Схемы прогрессии позаботятся о ваших весах; это заботится о машине, которая их поднимает.",
+      },
+    ],
+  },
+  {
+    slug: "warm-up-and-stretch",
+    title: {
+      en: "Warm-ups and stretching: the part beginners skip",
+      ru: "Разминка и растяжка: то, что новички пропускают",
+    },
+    excerpt: {
+      en: "They look useless and cost five minutes. They prevent injuries — and make the working set feel drastically easier.",
+      ru: "Выглядят бесполезно и стоят пять минут. Они предотвращают травмы — и делают рабочий подход ощутимо легче.",
+    },
+    date: "2026-08-10",
+    image: {
+      src: "/blog/warm-up-and-stretch.jpg",
+      credit: "infoxicated",
+      creditUrl: "https://unsplash.com/photos/a-cat-lying-on-the-ground-zKKYWyM4AjY",
+    },
+    paragraphs: [
+      {
+        en: "Almost every beginner quietly believes warm-ups and stretching are ceremony. Then two things change their mind: the first tweaked muscle, and the first time a warmed-up set feels drastically lighter than the same weight attempted cold. A warm-up is not politeness toward your body — it is preparation that pays back inside the same workout.",
+        ru: "Почти каждый новичок втайне уверен, что разминка и растяжка — это церемония. Мнение меняют две вещи: первая потянутая мышца и первый раз, когда разогретый подход ощущается разительно легче того же веса на холодную. Разминка — не вежливость к телу, а подготовка, которая окупается в той же тренировке.",
+      },
+      {
+        en: "The basic routine takes five minutes: neck rotations, side leg raises, torso rotations. Then ramp into the bar: planning to lift 30 kg? Do 20 kg for 12 easy reps first. The working set will thank you — warm muscle produces more force and takes load with far less drama.",
+        ru: "Базовый вариант занимает пять минут: вращения шеи, подъёмы ног в сторону, вращения корпуса. Затем подводка к весу: собираетесь поднять 30 кг — сначала сделайте 20 кг на 12 лёгких повторений. Рабочий подход скажет спасибо: тёплая мышца даёт больше силы и принимает нагрузку без драмы.",
+      },
+      {
+        en: "Stretching matters for a less obvious reason. Lifting grows muscle by repairing micro-damage — and you want that rebuilding to happen along the muscle's full length, not bunched into one short, tight segment. Flexibility work is what keeps the new tissue long, even and useful; the less flexible you are, the more this applies to you.",
+        ru: "Растяжка важна по менее очевидной причине. Железо растит мышцу, восстанавливая микроповреждения, — и вы хотите, чтобы это восстановление шло по всей длине мышцы, а не сбивалось в один короткий зажатый участок. Работа над гибкостью — то, что делает новую ткань длинной, ровной и полезной; чем вы менее гибки, тем больше это про вас.",
+      },
+      {
+        en: "One stretch worth stealing today: stand facing a wall, lean into it, arms overhead at ninety degrees, and hold. It costs nothing, and it is a straight path toward a flat, even back — the kind all that rowing and pulling is supposed to build.",
+        ru: "Одна растяжка, которую стоит забрать уже сегодня: встаньте лицом к стене, обопритесь, руки вверх под девяносто градусов — и держите. Это ничего не стоит и ведёт прямой дорогой к ровной, красивой спине — той самой, ради которой делаются все эти тяги.",
+      },
+    ],
+  },
 ];

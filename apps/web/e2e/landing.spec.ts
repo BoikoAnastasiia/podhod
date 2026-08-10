@@ -92,11 +92,15 @@ test("the nav marks the active route and navigates", async ({ page }) => {
 
 test("the blog lists its articles as cards with covers and credits", async ({ page }) => {
   await page.goto("/blog");
-  await expect(page.getByTestId("blog-card")).toHaveCount(4);
+  await expect(page.getByTestId("blog-card")).toHaveCount(6);
   // Every article carries a self-hosted cover image on its card.
-  await expect(page.getByTestId("blog-card-image")).toHaveCount(4);
+  await expect(page.getByTestId("blog-card-image")).toHaveCount(6);
   await page.getByTestId("blog-card").first().click();
   await expect(page.getByTestId("blog-article")).toBeVisible();
   // The photographer is credited under the article's hero image.
   await expect(page.getByTestId("photo-credit")).toContainText("Unsplash");
+  // The right rail links every other article, MDN-style.
+  await expect(page.getByTestId("more-article")).toHaveCount(5);
+  await page.getByTestId("more-article").first().click();
+  await expect(page.getByTestId("blog-article")).toBeVisible();
 });

@@ -96,6 +96,12 @@ test("builds a workout from nothing", async ({ page }) => {
   await expect(card).toContainText("3 exercises");
   await card.getByTestId("toggle-active").click();
   await expect(card.getByTestId("active-badge")).toBeVisible();
+
+  // The whole card is the entrance now (no Open pill): clicking anywhere
+  // outside the action row reopens the editor. The count text is a safe
+  // "anywhere" — it is not a control of its own.
+  await card.getByText("3 exercises").click();
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
 });
 
 test("activating a second program deactivates the first in the UI", async ({ page }) => {

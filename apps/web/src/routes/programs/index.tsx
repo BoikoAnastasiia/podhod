@@ -240,11 +240,19 @@ function Programs() {
   );
 
   const card = (program: ProgramSummary) => (
+    /*
+     * The whole card is the entrance (owner's call — the Open pill is gone):
+     * a click anywhere opens the program, viewport-appropriately, via
+     * openProgram. The name stays a real <Link> for keyboard users and
+     * cmd+click; it and the action row stop propagation so their own
+     * behaviors don't double-fire the card's.
+     */
     <li
       key={program.id}
       data-testid="program-card"
       data-program-active={program.isActive}
-      className="rounded-card border border-border bg-surface p-5"
+      onClick={() => openProgram(program.id)}
+      className="cursor-pointer rounded-card border border-border bg-surface p-5 transition-shadow duration-200 ease-out hover:shadow-card-hover"
     >
       <div className="flex flex-wrap items-center gap-3">
         {program.icon && (
@@ -255,6 +263,7 @@ function Programs() {
         <Link
           to="/programs/$programId"
           params={{ programId: program.id }}
+          onClick={(event) => event.stopPropagation()}
           className="text-lg font-semibold text-ink underline-offset-4 hover:underline"
           data-testid="program-link"
         >
@@ -271,18 +280,9 @@ function Programs() {
         <span className="text-sm text-muted tabular-nums">{exerciseCountLabel(program)}</span>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {/* The name link alone proved too subtle an entrance — an explicit
-            control makes the card's main action visible. */}
-        <button
-          type="button"
-          className={pill}
-          data-testid="open-program"
-          onClick={() => openProgram(program.id)}
-        >
-          {t("programs.open")}
-        </button>
-
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions --
+          purely a propagation fence; every control inside is a real button */}
+      <div className="mt-4 flex flex-wrap gap-2" onClick={(event) => event.stopPropagation()}>
         <button
           type="button"
           className={pill}

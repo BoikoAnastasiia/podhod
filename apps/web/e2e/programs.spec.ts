@@ -143,13 +143,8 @@ test("an added exercise's scheme can be edited and the entry removed", async ({ 
   await page.getByTestId("add-exercise").click();
   await page.getByTestId("picker-search").fill("squat");
 
-  // Previews are on by default — a beginner recognises a thumbnail where a
-  // name like "clean-grip front squat" is just noise — and the toggle both
-  // turns them off and remembers the choice.
-  await expect(page.getByTestId("picker-thumb").first()).toBeVisible();
-  await page.getByTestId("toggle-previews").click();
-  await expect(page.getByTestId("picker-thumb")).toHaveCount(0);
-  await page.getByTestId("toggle-previews").click();
+  // Every result carries a thumbnail — a beginner recognises a picture
+  // where a name like "clean-grip front squat" is just noise.
   await expect(page.getByTestId("picker-thumb").first()).toBeVisible();
 
   await page.getByTestId("picker-result").first().click();

@@ -96,17 +96,6 @@ function Landing() {
         )}
       </section>
 
-      <section className="grid gap-6 md:grid-cols-2">
-        <div className="flex flex-col gap-3 rounded-card bg-surface p-6 shadow-card">
-          <h2 className="text-xl font-bold tracking-tight">{t("landing.today.heading")}</h2>
-          <p className="text-muted">{t("landing.today.body")}</p>
-        </div>
-        <div className="flex flex-col gap-3 rounded-card bg-surface p-6 shadow-card">
-          <h2 className="text-xl font-bold tracking-tight">{t("landing.coming.heading")}</h2>
-          <p className="text-muted">{t("landing.coming.body")}</p>
-        </div>
-      </section>
-
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xl font-bold tracking-tight">{t("landing.blog.heading")}</h2>

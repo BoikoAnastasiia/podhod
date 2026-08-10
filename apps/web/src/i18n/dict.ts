@@ -22,7 +22,7 @@ export const dict = {
     "programs.heading": "Programs",
     "programs.empty.title": "No programs yet",
     "programs.empty.body":
-      "A program is a set of training days, each with its exercises and how the weight should progress. Make one to get started.",
+      "A program is one workout — a list of exercises with a weight and a progression rule for each. Take a ready-made one above, or create your own.",
     "programs.search": "Search workouts",
     "programs.new": "New program",
     "programs.defaultName": "New program",
@@ -103,12 +103,6 @@ export const dict = {
     "landing.stat.loading": "Counting the library…",
     "landing.stat.error": "Couldn't reach the library just now.",
     "landing.stat.rest": "in the library, searchable in both Russian and English.",
-    "landing.today.heading": "What's here today",
-    "landing.today.body":
-      "A bilingual exercise library: search by name, filter by body part, and open any exercise for step-by-step instructions and a demonstration. And, once signed in, training programs — ready-made or your own — with a progression rule for every exercise.",
-    "landing.coming.heading": "What's coming next",
-    "landing.coming.body":
-      "A guided session player that walks you through each workout set by set and computes your next targets from your history. Not built yet — everything above is live.",
     "footer.github": "View source on GitHub",
     "addTo.button": "Add to program",
     "addTo.title": "Which program?",
@@ -176,7 +170,7 @@ export const dict = {
     "programs.heading": "\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b",
     "programs.empty.title": "\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c \u043f\u043e\u043a\u0430 \u043d\u0435\u0442",
     "programs.empty.body":
-      "\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0430 \u2014 \u044d\u0442\u043e \u043d\u0430\u0431\u043e\u0440 \u0442\u0440\u0435\u043d\u0438\u0440\u043e\u0432\u043e\u0447\u043d\u044b\u0445 \u0434\u043d\u0435\u0439 \u0441 \u0443\u043f\u0440\u0430\u0436\u043d\u0435\u043d\u0438\u044f\u043c\u0438 \u0438 \u043f\u0440\u0430\u0432\u0438\u043b\u043e\u043c, \u043f\u043e \u043a\u043e\u0442\u043e\u0440\u043e\u043c\u0443 \u0440\u0430\u0441\u0442\u0451\u0442 \u0432\u0435\u0441. \u0421\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u043f\u0435\u0440\u0432\u0443\u044e, \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c.",
+      "Программа — это одна тренировка: список упражнений, у каждого свой вес и правило прогрессии. Возьмите готовую выше или создайте свою.",
     "programs.search": "Поиск тренировок",
     "programs.new": "Новая программа",
     "programs.defaultName": "Новая программа",
@@ -257,12 +251,6 @@ export const dict = {
     "landing.stat.loading": "Считаем библиотеку…",
     "landing.stat.error": "Не удалось связаться с библиотекой.",
     "landing.stat.rest": "в библиотеке — с поиском на русском и английском.",
-    "landing.today.heading": "Что есть уже сегодня",
-    "landing.today.body":
-      "Двуязычная библиотека упражнений: поиск по названию, фильтр по группе мышц, а в карточке каждого упражнения — пошаговая инструкция и демонстрация. А после входа — программы тренировок, готовые или свои, с правилом прогрессии для каждого упражнения.",
-    "landing.coming.heading": "Что будет дальше",
-    "landing.coming.body":
-      "Режим тренировки, который ведёт по сетам и сам считает следующие цели по вашей истории. Пока не реализовано — всё остальное выше уже работает.",
     "footer.github": "Исходный код на GitHub",
     "addTo.button": "Добавить в программу",
     "addTo.title": "В какую программу?",

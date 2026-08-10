@@ -13,7 +13,7 @@ function Blog() {
       <h1 className="text-2xl font-semibold text-ink">{t("blog.heading")}</h1>
       {/* Cards, not rows — with the cover image when an article has one. */}
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {BLOG_POSTS.map((post) => (
+        {BLOG_POSTS.map((post, index) => (
           <li key={post.slug}>
             <Link
               to="/blog/$slug"
@@ -22,12 +22,16 @@ function Blog() {
               className="group flex h-full flex-col overflow-hidden rounded-card bg-surface shadow-card transition-shadow duration-200 ease-out hover:shadow-card-hover"
             >
               {post.image && (
+                // The first card's cover is the page's LCP element: it must
+                // load eagerly and with priority, while the below-the-fold
+                // covers stay lazy — Lighthouse flagged exactly this split.
                 <img
                   src={post.image.src}
                   alt=""
-                  width={1200}
-                  height={675}
-                  loading="lazy"
+                  width={900}
+                  height={600}
+                  loading={index === 0 ? "eager" : "lazy"}
+                  fetchPriority={index === 0 ? "high" : "auto"}
                   data-testid="blog-card-image"
                   className="aspect-video w-full object-cover"
                 />

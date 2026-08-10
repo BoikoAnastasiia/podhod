@@ -1,0 +1,16 @@
+# PODHOD
+
+> Your personal workout program and tracker. A bilingual (English/Russian)
+> exercise library of 1,324 movements with step-by-step instructions, and a
+> program builder with per-exercise progression schemes (linear, double
+> progression, RPE, fixed weight).
+
+## Pages
+
+- [Home](https://podhod-workout.cc/): overview and most popular exercises
+- [Exercise library](https://podhod-workout.cc/library): searchable, filterable by body part
+- [Blog](https://podhod-workout.cc/blog): short articles on training basics
+
+## Source
+
+- [GitHub repository](https://github.com/BoikoAnastasiia/podhod)

@@ -84,20 +84,32 @@ function Landing() {
             </p>
           )}
         </div>
-        {popularItems.length > 0 && (
-          <>
-            <h2 className="text-xl font-bold tracking-tight">
-              {t("landing.popular.heading")}
-            </h2>
-            <ul className="grid grid-exercises gap-3" data-testid="popular-exercises">
-              {popularItems.map((exercise) => (
+        <h2 className="text-xl font-bold tracking-tight">
+          {t("landing.popular.heading")}
+        </h2>
+        {/*
+         * The grid renders immediately, holding its final footprint with
+         * card-shaped placeholders until the fetches land — the section
+         * appearing late used to shove "From the blog" down the page and
+         * was the landing's whole CLS score (0.454, measured).
+         */}
+        <ul className="grid grid-exercises gap-3" data-testid="popular-exercises">
+          {popularItems.length > 0
+            ? popularItems.map((exercise) => (
                 <li key={exercise.id}>
                   <ExerciseCard exercise={exercise} label={term} />
                 </li>
+              ))
+            : POPULAR_EXERCISE_IDS.map((id) => (
+                <li key={id} aria-hidden="true">
+                  <div className="flex min-h-row-min flex-col items-center gap-2 rounded-card bg-surface p-2 shadow-card">
+                    <div className="size-media rounded-row bg-canvas" />
+                    <div className="h-4 w-full rounded-full bg-canvas" />
+                    <div className="h-3 w-full rounded-full bg-canvas" />
+                  </div>
+                </li>
               ))}
-            </ul>
-          </>
-        )}
+        </ul>
       </section>
 
       <section className="flex flex-col gap-4">

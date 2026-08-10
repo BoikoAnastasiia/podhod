@@ -161,7 +161,10 @@ export function UserMenu() {
                   setOpen(false);
                   navigate({ to: "/" });
                 }}
-                className="flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink"
+                // bg-ink, not literal black: ink flips to near-white in the
+                // dark theme, so the button stays a contrast block on both
+                // panel colours instead of disappearing into the dark one.
+                className="flex min-h-tap-min w-full items-center justify-center rounded-full bg-ink px-4 text-sm font-semibold text-canvas transition-opacity duration-150 hover:opacity-85"
               >
                 {t("auth.signOut")}
               </button>
@@ -173,7 +176,7 @@ export function UserMenu() {
                   setOpen(false);
                   navigate({ to: "/sign-in" });
                 }}
-                className="flex min-h-tap-min items-center justify-center rounded-full bg-accent px-4 text-sm font-semibold text-ink-on-accent"
+                className="flex min-h-tap-min w-full items-center justify-center rounded-full bg-accent px-4 text-sm font-semibold text-ink-on-accent"
               >
                 {t("auth.signIn")}
               </button>

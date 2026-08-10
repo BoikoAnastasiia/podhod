@@ -36,7 +36,7 @@ function Library() {
   const items = data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 py-8">
       <div className="relative">
         {/* Decorative — the input carries its own aria-label. */}
         <svg

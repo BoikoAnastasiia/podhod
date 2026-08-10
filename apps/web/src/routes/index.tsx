@@ -104,7 +104,11 @@ function Landing() {
           </Link>
         </div>
         <ul className="grid gap-4 sm:grid-cols-3">
-          {BLOG_POSTS.map((post) => (
+          {/* The three latest — the blog page itself carries the full list. */}
+          {[...BLOG_POSTS]
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .slice(0, 3)
+            .map((post) => (
             <li key={post.slug}>
               <Link
                 to="/blog/$slug"

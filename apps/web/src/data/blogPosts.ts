@@ -9,10 +9,10 @@ export type BlogPost = {
   date: string;
   /**
    * Self-hosted under public/blog/ — never hotlinked, per the project's
-   * no-third-party-requests stance. creditUrl links the source (Unsplash
-   * licence: credit appreciated, hotlinking not required).
+   * no-third-party-requests stance. `credit` is the photographer's name and
+   * creditUrl the source page (Unsplash licence: credit appreciated).
    */
-  image?: { src: string; creditUrl: string };
+  image?: { src: string; credit: string; creditUrl: string };
   paragraphs: Localized[];
 };
 
@@ -37,6 +37,7 @@ export const BLOG_POSTS: BlogPost[] = [
     date: "2026-08-01",
     image: {
       src: "/blog/how-progression-works.jpg",
+      credit: "Brecht Corbeel",
       creditUrl:
         "https://unsplash.com/photos/detailed-anatomical-model-showing-human-back-muscles-and-skeletal-structure-FtQ7Hs6c5Lk",
     },
@@ -74,6 +75,11 @@ export const BLOG_POSTS: BlogPost[] = [
       ru: "Начните легче, чем хочет ваше эго. Простой способ найти вес, с которого есть куда расти.",
     },
     date: "2026-08-05",
+    image: {
+      src: "/blog/first-working-weight.jpg",
+      credit: "Victor Freitas",
+      creditUrl: "https://unsplash.com/photos/person-about-to-lift-the-barbel-WvDYdXDzkhs",
+    },
     paragraphs: [
       {
         en: "The most common beginner mistake is starting where you think you should be, not where you are. The first working weight is not a test — it is a starting line, and the whole point of a progression scheme is that the line moves.",
@@ -104,6 +110,11 @@ export const BLOG_POSTS: BlogPost[] = [
       ru: "Два-три посещения зала в неделю — одна дорога; пять — другая. Короткий гид, как выбрать форму, которой вы будете придерживаться.",
     },
     date: "2026-08-08",
+    image: {
+      src: "/blog/full-body-or-split.jpg",
+      credit: "Alora Griffiths",
+      creditUrl: "https://unsplash.com/photos/pair-of-black-dumbbells-zEAX0E0KJxs",
+    },
     paragraphs: [
       {
         en: "The best program shape is the one that survives your calendar. Train twice or three times a week and full-body workouts win: every session touches everything, so a missed day never orphans a muscle group.",
@@ -120,6 +131,41 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         en: "Start from a ready-made workout, swap what your gym cannot support, and let consistency — not ambition — pick the shape.",
         ru: "Начните с готовой тренировки, замените то, чего нет в вашем зале, и пусть форму выбирает регулярность, а не амбиции.",
+      },
+    ],
+  },
+  {
+    slug: "protein-for-more-than-muscle",
+    title: {
+      en: "Protein: not just for muscle",
+      ru: "Белок: не только для мышц",
+    },
+    excerpt: {
+      en: "Hair, skin and recovery all run on protein — and a chicken breast covers it as well as any powder.",
+      ru: "Волосы, кожа и восстановление — всё это работает на белке, и куриная грудка справляется не хуже любого порошка.",
+    },
+    date: "2026-08-10",
+    image: {
+      src: "/blog/protein-for-more-than-muscle.jpg",
+      credit: "Ella Olsson",
+      creditUrl: "https://unsplash.com/photos/broccoli-with-meat-on-plate-mmnKI8kMxpc",
+    },
+    paragraphs: [
+      {
+        en: "Protein has a gym-bro reputation, but muscle is only one of its customers. Hair is mostly keratin and skin leans on collagen — both proteins your body rebuilds continuously from what you eat. Run a deficit for long enough and it shows up far from the squat rack: brittle hair, dull skin, slower recovery from everything.",
+        ru: "У белка репутация еды качков, но мышцы — лишь один из его потребителей. Волосы — это в основном кератин, кожа держится на коллагене, и оба этих белка тело непрерывно строит из того, что вы едите. Затянувшийся дефицит проявляется далеко от стойки для приседа: ломкие волосы, тусклая кожа, медленное восстановление после чего угодно.",
+      },
+      {
+        en: "For someone who trains, the commonly cited range is roughly 1.6–2.2 grams per kilogram of body weight per day. You do not need to hit it with a calculator — you need most meals to contain something that was recently an animal, a fish, an egg or a bean.",
+        ru: "Для тренирующегося человека обычно называют диапазон примерно 1,6–2,2 грамма на килограмм веса в день. Считать с калькулятором не обязательно — достаточно, чтобы в большинстве приёмов пищи было что-то, что недавно было мясом, рыбой, яйцом или фасолью.",
+      },
+      {
+        en: "Protein powder is a convenience, not a requirement. The easiest whole-food source is the unglamorous chicken breast: about 30 grams of protein per 100 grams cooked, cheap, and it survives any cooking skill level. Eggs, cottage cheese, fish and legumes fill in the rest of the week.",
+        ru: "Протеиновый порошок — удобство, а не необходимость. Самый простой цельный источник — негламурная куриная грудка: около 30 граммов белка на 100 граммов готового продукта, дёшево, и она переживает любой уровень кулинарных навыков. Яйца, творог, рыба и бобовые закрывают остальную неделю.",
+      },
+      {
+        en: "The practical rule: lift, eat enough protein, sleep — in that order of glamour and the reverse order of importance. The progression scheme moves the bar; the plate is what lets your body keep up with it.",
+        ru: "Практичное правило: тренируйтесь, ешьте достаточно белка, спите — в этом порядке по зрелищности и в обратном по важности. Схема прогрессии двигает штангу; тарелка — то, что позволяет телу за ней успевать.",
       },
     ],
   },

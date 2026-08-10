@@ -40,13 +40,15 @@ function BlogPost() {
                 className="aspect-video w-full rounded-card object-cover"
               />
               <figcaption className="mt-2 text-xs text-muted">
+                {t("blog.photo")}:{" "}
                 <a
                   href={post.image.creditUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="link-inline"
+                  data-testid="photo-credit"
                 >
-                  Unsplash
+                  {post.image.credit} — Unsplash
                 </a>
               </figcaption>
             </figure>

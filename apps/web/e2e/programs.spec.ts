@@ -541,24 +541,50 @@ test.describe("on a phone viewport", () => {
     const header = page.getByRole("banner");
     await expect(nav).toBeVisible();
 
+    /*
+     * The property that matters is that the page comes to rest: collapsing the
+     * nav row must not move the document underneath it.
+     *
+     * It is asserted as "does scrolling stop" rather than "is the header in
+     * state X" because of what the regression actually looked like. While the
+     * header was in flow, collapsing it removed 48px from above the viewport,
+     * scroll anchoring compensated by the same 48px, that read as scrolling up,
+     * the row came back — and the position alternated between 900 and 852
+     * forever. Reproduced here before this was written, to be sure the check
+     * still catches it.
+     *
+     * Asserting the header's own class instead is what made the first version
+     * of this test fail on CI: it re-checked a timing-sensitive state the run
+     * had already moved past, and waiting for the page to settle first merely
+     * hid the oscillation behind the wait.
+     */
+    const restsWithin = (frames: number) =>
+      page.evaluate(async (limit) => {
+        const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+        let previous = Number.NaN;
+        let still = 0;
+        for (let elapsed = 0; elapsed < limit; elapsed++) {
+          await frame();
+          if (window.scrollY === previous) {
+            still += 1;
+            if (still >= 8) return true;
+          } else {
+            still = 0;
+            previous = window.scrollY;
+          }
+        }
+        return false;
+      }, frames);
+
     await page.mouse.wheel(0, 900);
+    expect(await restsWithin(120)).toBe(true);
     await expect(nav).toBeHidden();
     // Still pinned, just shorter.
     expect((await header.boundingBox())?.y).toBe(0);
 
     await page.mouse.wheel(0, -300);
+    expect(await restsWithin(120)).toBe(true);
     await expect(nav).toBeVisible();
-
-    // And it stays put once the scrolling stops.
-    const settled = await page.evaluate(async () => {
-      const seen = new Set<string>();
-      for (let frame = 0; frame < 30; frame++) {
-        seen.add(String(document.querySelector("header")?.dataset.compact));
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-      }
-      return [...seen];
-    });
-    expect(settled).toEqual(["false"]);
   });
 
   test("creating a program opens the full page, not a dialog", async ({ page }) => {

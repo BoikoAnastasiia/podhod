@@ -65,7 +65,7 @@ function Library() {
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("library.search")}
           aria-label={t("library.search")}
-          className="min-h-tap-min w-full rounded-full border-2 border-border bg-surface pl-10 pr-5 text-ink shadow-search outline-none transition-colors duration-150 placeholder:text-muted focus:border-accent"
+          className="min-h-tap-min w-full rounded-full border-2 border-border bg-surface pl-10 pr-5 text-ink shadow-search transition-colors duration-150 placeholder:text-muted"
         />
       </div>
       <FilterChips

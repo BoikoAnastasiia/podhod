@@ -1,7 +1,16 @@
 import type { ProgramDetail, ProgramExercise } from "@podhod/schema";
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import { ALL_SCHEMES, api, DOUBLE, LINEAR, RPE, setUpSchema, signUpAs } from "./programHelpers.js";
+import {
+  ALL_SCHEMES,
+  api,
+  DOUBLE,
+  LINEAR,
+  RPE,
+  seedExercises,
+  setUpSchema,
+  signUpAs,
+} from "./programHelpers.js";
 
 let client: ReturnType<typeof api>;
 
@@ -76,26 +85,22 @@ describe("exercises within a program", () => {
   });
 
   /**
-   * This rule reverses an earlier one. The same exercise twice in a workout —
-   * heavy then light, two different schemes — is a real training pattern, and
-   * the API used to allow it for that reason. It is forbidden now because
-   * accidental duplicates turned out to be the far more common case: nothing
-   * confirmed the first tap in the picker, so people tapped again and got two
-   * identical rows (the owner's call, 2026-08-12, from exactly that).
-   *
-   * The picker also marks what a program already holds, so the duplicate is
-   * refused before it is attempted; this is the backstop.
+   * Allowed, briefly forbidden, allowed again. The ban was added after
+   * accidental double-taps in the picker produced identical rows, and removed
+   * once it was clear it had outlawed the intent along with the accident: a
+   * heavy set and a lighter back-off set are the same exercise twice, each with
+   * its own weight and its own progression rule. The accident is now prevented
+   * where it happened — the picker marks what a program already holds — and
+   * the editor has an explicit duplicate control for the deliberate case.
    */
-  it("refuses the same exercise twice in one workout", async () => {
+  it("allows the same exercise twice in one workout, which is a real training pattern", async () => {
     const programId = await newProgram("twice");
     await addOk(programId, { exerciseId: "e1", scheme: LINEAR });
-
-    const res = await add(programId, { exerciseId: "e1", scheme: DOUBLE });
-    expect(res.status).toBe(409);
+    await addOk(programId, { exerciseId: "e1", scheme: DOUBLE });
 
     const entries = await entriesOf(programId);
-    expect(entries).toHaveLength(1);
-    expect(entries.map((e) => e.position)).toEqual([0]);
+    expect(entries).toHaveLength(2);
+    expect(entries.map((e) => e.position)).toEqual([0, 1]);
   });
 
   it("rejects a malformed scheme and stores nothing", async () => {
@@ -116,6 +121,74 @@ describe("exercises within a program", () => {
 
   it("404s when adding to a program that does not exist", async () => {
     expect((await add("nope", { exerciseId: "e1", scheme: LINEAR })).status).toBe(404);
+  });
+});
+
+/**
+ * A prescription has to suit the movement it prescribes. The editor only offers
+ * the kinds that fit, but that is a convention until the API enforces it — and
+ * the row that prompted all of this ("walk elliptical cross trainer, 4×10 ·
+ * 20 kg") was written by a client that believed every exercise took kilograms.
+ */
+describe("prescriptions must suit the exercise", () => {
+  beforeAll(async () => {
+    await seedExercises(["pushup"], { bodyPart: "upper arms", equipment: "body weight" });
+    await seedExercises(["treadmill"], { bodyPart: "cardio", equipment: "elliptical machine" });
+  });
+
+  it("refuses kilograms on a body-weight movement", async () => {
+    const programId = await newProgram("bw-guard");
+    const res = await add(programId, { exerciseId: "pushup", scheme: LINEAR });
+
+    expect(res.status).toBe(400);
+    expect(await entriesOf(programId)).toHaveLength(0);
+  });
+
+  it("accepts a bodyweight prescription on the same movement", async () => {
+    const programId = await newProgram("bw-ok");
+    await addOk(programId, {
+      exerciseId: "pushup",
+      scheme: { kind: "bodyweight", sets: 3, reps: 12, addedWeightKg: 0 },
+    });
+
+    expect((await entriesOf(programId))[0]?.scheme).toEqual({
+      kind: "bodyweight",
+      sets: 3,
+      reps: 12,
+      addedWeightKg: 0,
+    });
+  });
+
+  it("allows only time on a cardio machine — not reps, not weight", async () => {
+    const programId = await newProgram("cardio-guard");
+    expect((await add(programId, { exerciseId: "treadmill", scheme: LINEAR })).status).toBe(400);
+    expect(
+      (
+        await add(programId, {
+          exerciseId: "treadmill",
+          scheme: { kind: "bodyweight", sets: 4, reps: 10, addedWeightKg: 0 },
+        })
+      ).status,
+    ).toBe(400);
+
+    await addOk(programId, {
+      exerciseId: "treadmill",
+      scheme: { kind: "duration", sets: 1, seconds: 1200 },
+    });
+    expect(await entriesOf(programId)).toHaveLength(1);
+  });
+
+  /** An edit can swap the kind outright, so the same rule applies on the way through. */
+  it("refuses an edit that swaps a valid prescription for an unsuitable one", async () => {
+    const programId = await newProgram("bw-edit-guard");
+    const entryId = await addOk(programId, {
+      exerciseId: "pushup",
+      scheme: { kind: "bodyweight", sets: 3, reps: 12, addedWeightKg: 0 },
+    });
+
+    const res = await client.patch(`/api/programs/exercises/${entryId}`, { scheme: LINEAR });
+    expect(res.status).toBe(400);
+    expect((await entriesOf(programId))[0]?.scheme).toMatchObject({ kind: "bodyweight" });
   });
 });
 

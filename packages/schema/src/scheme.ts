@@ -53,11 +53,38 @@ export const schemeRpeSchema = z.object({
   adjustPct: fraction,
 });
 
+/**
+ * The body as the load. `addedWeightKg` is the one weight in this file that may
+ * be negative or zero, so it does not use the shared `weight`: zero is a plain
+ * push-up, +20 is a dipping belt and −20 is an assisted machine taking twenty
+ * kilos off you. Rejecting the negative would leave assistance recorded as
+ * resistance, which is the wrong direction, not merely the wrong sign.
+ */
+export const schemeBodyweightSchema = z.object({
+  kind: z.literal("bodyweight"),
+  sets: positiveInt.max(20),
+  reps: positiveInt.max(100),
+  addedWeightKg: z.number().min(-500).max(500),
+});
+
+/**
+ * Prescribed in time. The cap is four hours — long enough for anything anyone
+ * programmes, short enough that a stray millisecond value is rejected rather
+ * than stored as a 90-day plank.
+ */
+export const schemeDurationSchema = z.object({
+  kind: z.literal("duration"),
+  sets: positiveInt.max(20),
+  seconds: positiveInt.max(14400),
+});
+
 export const schemeSchema = z.discriminatedUnion("kind", [
   schemeFixedSchema,
   schemeLinearSchema,
   schemeDoubleSchema,
   schemeRpeSchema,
+  schemeBodyweightSchema,
+  schemeDurationSchema,
 ]);
 
 export type SchemeInput = z.infer<typeof schemeSchema>;

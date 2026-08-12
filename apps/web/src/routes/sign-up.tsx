@@ -91,7 +91,7 @@ function SignUp() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="min-h-tap-min rounded-full border-2 border-border bg-surface px-5 text-ink shadow-search outline-none transition-colors duration-150 focus:border-accent"
+            className="min-h-tap-min rounded-full border-2 border-border bg-surface px-5 text-ink shadow-search transition-colors duration-150"
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -103,7 +103,7 @@ function SignUp() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="min-h-tap-min rounded-full border-2 border-border bg-surface px-5 text-ink shadow-search outline-none transition-colors duration-150 focus:border-accent"
+            className="min-h-tap-min rounded-full border-2 border-border bg-surface px-5 text-ink shadow-search transition-colors duration-150"
           />
         </label>
         {/* The one place accent-red belongs today: the error state. */}

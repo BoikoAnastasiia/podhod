@@ -268,38 +268,135 @@ test("the exercise picker never empties while the search is being typed", async 
  * already in the program and refuses the second tap; the API refuses it too, so
  * the rule does not depend on the button being disabled.
  */
-test("an exercise already in the program cannot be added again", async ({ page }) => {
+test("the picker refuses a second tap, but the row can be duplicated on purpose", async ({
+  page,
+}) => {
   await signUp(page, "programs-dupe");
   await page.goto("/programs");
 
   await page.getByTestId("create-program").click();
   await expect(page.getByTestId("program-dialog")).toBeVisible();
   await page.getByTestId("add-exercise").click();
-  await page.getByTestId("picker-search").fill("air bike");
+  // A barbell movement on purpose: the point of duplicating is two weights, and
+  // only an exercise that takes an external load has one.
+  await page.getByTestId("picker-search").fill("barbell full squat");
 
   const picked = page.getByTestId("picker-result").first();
   await picked.click();
   await expect(page.getByTestId("day-exercise")).toHaveCount(1);
 
-  // The row it came from now says so, and is no longer clickable.
+  // The accident: the row it came from says so, and cannot be tapped again.
   await expect(picked.getByTestId("picker-added")).toBeVisible();
   await expect(picked).toBeDisabled();
+  await page.getByTestId("picker-close").click();
 
-  // The server holds the same line, whatever the client believes.
-  const status = await page.evaluate(async () => {
-    const list = await (await fetch("/api/programs")).json();
-    const program = list.programs.find((p: { name: string }) => p.name === "New program");
-    const detail = await (await fetch(`/api/programs/${program.id}`)).json();
-    const existing = detail.exercises[0].exerciseId;
-    const res = await fetch(`/api/programs/${program.id}/exercises`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ exerciseId: existing, scheme: { kind: "fixed", sets: 4, reps: 10, weightKg: 20 } }),
-    });
-    return res.status;
-  });
-  expect(status).toBe(409);
+  /*
+   * The intent: heavy set then back-off set is one exercise twice. The copy
+   * carries the original's scheme and lands directly beneath it — not at the
+   * end of the list, which is what the append-only add endpoint would do on its
+   * own.
+   */
+  await page.getByTestId("day-exercise").first().getByTestId("duplicate-entry").click();
+  await expect(page.getByTestId("day-exercise")).toHaveCount(2);
+  await expect(page.getByTestId("entry-name").nth(1)).toHaveText("barbell full squat");
+  await expect(page.getByTestId("entry-weight").nth(1)).toHaveValue("20");
+
+  // Two rows, two weights — the whole point of allowing the duplicate.
+  const secondWeight = page.getByTestId("day-exercise").nth(1).getByTestId("entry-weight");
+  await secondWeight.fill("40");
+  await secondWeight.press("Enter");
+  await page.reload();
+  await expect(page.getByTestId("entry-weight").first()).toHaveValue("20");
+  await expect(page.getByTestId("entry-weight").nth(1)).toHaveValue("40");
+});
+
+
+/**
+ * A row's thumbnail is a way out to the exercise and back again.
+ *
+ * The return trip is the part worth testing: it is carried by `?from=` rather
+ * than session history, precisely so it survives a reload or a pasted link —
+ * so the test reloads the library page before pressing back, which is exactly
+ * the case `history.back()` would fail.
+ */
+test("an entry's preview opens the exercise and comes back to the program", async ({ page }) => {
+  await signUp(page, "programs-preview");
+  await page.goto("/programs");
+
+  await page.getByTestId("create-program").click();
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
+  await page.getByTestId("add-exercise").click();
+  await page.getByTestId("picker-search").fill("air bike");
+  await page.getByTestId("picker-result").first().click();
   await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+  await page.getByTestId("picker-close").click();
+
+  await page.getByTestId("entry-preview").click();
+  await expect(page).toHaveURL(/\/library\/\d+\?from=/);
+  // By name, not by position: the program dialog's own <h1> is still in the
+  // DOM for the moment the route transition takes.
+  await expect(page.getByRole("heading", { name: "air bike", level: 1 })).toBeVisible();
+
+  // Reload first: the way back must not depend on where the tab has been.
+  await page.reload();
+  await page.getByTestId("back-to-program").click();
+
+  await expect(page).toHaveURL(/\/programs\?program=/);
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
+  await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+});
+
+/**
+ * "walk elliptical cross trainer · 4×10 · 20 kg" is the row that prompted this:
+ * every exercise used to arrive with the same weight-based default, and 451 of
+ * the library's 1,324 carry no external load at all.
+ *
+ * The prescription now follows the equipment, and the editor offers only the
+ * kinds the movement can take — the API enforces the same rule, so a hand-made
+ * request cannot write kilograms onto a treadmill either.
+ */
+test("a prescription is written in the unit the exercise actually takes", async ({ page }) => {
+  await signUp(page, "programs-loadtype");
+  await page.goto("/programs");
+
+  await page.getByTestId("create-program").click();
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
+  await page.getByTestId("add-exercise").click();
+
+  const addFirstMatch = async (query: string) => {
+    await page.getByTestId("picker-search").fill(query);
+    await page.getByTestId("picker-result").first().click();
+  };
+
+  await addFirstMatch("walk elliptical");
+  await addFirstMatch("clock push-up");
+  await addFirstMatch("barbell full squat");
+  await expect(page.getByTestId("day-exercise")).toHaveCount(3);
+  await page.getByTestId("picker-close").click();
+
+  const rows = page.getByTestId("day-exercise");
+  // Time, with no reps and no kilograms anywhere in the line.
+  await expect(rows.nth(0)).toContainText("1×20 min");
+  await expect(rows.nth(0)).not.toContainText("kg");
+  await expect(rows.nth(0).getByTestId("entry-weight")).toHaveCount(0);
+
+  // Reps, no weight field.
+  await expect(rows.nth(1)).toContainText("3×12");
+  await expect(rows.nth(1).getByTestId("entry-weight")).toHaveCount(0);
+
+  // A barbell still gets its weight, editable on the row as before.
+  await expect(rows.nth(2).getByTestId("entry-weight")).toHaveValue("20");
+
+  // The editor offers only what the movement can take.
+  await rows.nth(0).getByTestId("edit-entry").click();
+  await expect(rows.nth(0).getByTestId("scheme-kind-duration")).toBeVisible();
+  await expect(rows.nth(0).getByTestId("scheme-kind-fixed")).toHaveCount(0);
+  await expect(rows.nth(0).getByTestId("scheme-kind-bodyweight")).toHaveCount(0);
+  await rows.nth(0).getByTestId("edit-entry").click();
+
+  await rows.nth(2).getByTestId("edit-entry").click();
+  await expect(rows.nth(2).getByTestId("scheme-kind-linear")).toBeVisible();
+  await expect(rows.nth(2).getByTestId("scheme-kind-duration")).toHaveCount(0);
 });
 
 test("activating a second program deactivates the first in the UI", async ({ page }) => {

@@ -1,7 +1,7 @@
 import { useGSAP } from "@gsap/react";
 import { ATTRIBUTION, mediaUrl } from "@podhod/core";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { useRef } from "react";
@@ -12,11 +12,39 @@ import { takeThumbState } from "../../lib/flipStore.js";
 
 gsap.registerPlugin(Flip, useGSAP);
 
-export const Route = createFileRoute("/library/$id")({ component: Detail });
+/** The sm breakpoint — the programs route frames the editor by the same line. */
+const DESKTOP = "(min-width: 40rem)";
+
+export const Route = createFileRoute("/library/$id")({
+  /**
+   * `?from=<programId>` marks this page as a detour out of a program, so it can
+   * offer the way back. It travels in the URL rather than leaning on session
+   * history because history is not there when it is most needed: this link gets
+   * shared, reloaded and opened in a new tab, and `history.back()` from a fresh
+   * tab lands on whatever was there before — or nowhere at all.
+   */
+  validateSearch: (search: Record<string, unknown>): { from?: string } =>
+    typeof search.from === "string" && search.from.length > 0 ? { from: search.from } : {},
+  component: Detail,
+});
 
 function Detail() {
   const { id } = Route.useParams();
+  const { from } = Route.useSearch();
+  const navigate = useNavigate();
   const { lang, term, t } = useI18n();
+
+  /*
+   * Back to the program, framed for the viewport the same way every other
+   * entrance to a program is: the dialog over the list on desktop, the full
+   * page on a phone. Returning a phone user to a desktop dialog — or a desktop
+   * user to the page shell they never used — would be a different room than the
+   * one they left.
+   */
+  const backToProgram = () =>
+    window.matchMedia(DESKTOP).matches
+      ? void navigate({ to: "/programs", search: { program: from } })
+      : void navigate({ to: "/programs/$programId", params: { programId: from ?? "" } });
   const root = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLImageElement>(null);
 
@@ -63,8 +91,28 @@ function Detail() {
     { scope: root, dependencies: [data] },
   );
 
-  // No dedicated back button: the header's Library link is always one glance
-  // away, and the browser's own Back covers the literal "go back" gesture.
+  // No dedicated back button to the *library*: the header's Library link is
+  // always one glance away, and the browser's own Back covers that gesture.
+  // Returning to a program is different — see `from` on the route above.
+  const backLink = from ? (
+    <button
+      type="button"
+      data-testid="back-to-program"
+      onClick={backToProgram}
+      className="flex min-h-tap-min w-max items-center gap-2 text-sm text-muted underline-offset-4 hover:text-ink hover:underline"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4">
+        <path
+          d="M15 5 8 12l7 7"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {t("library.backToProgram")}
+    </button>
+  ) : null;
 
   if (isError) {
     return (
@@ -94,6 +142,7 @@ function Detail() {
 
   return (
     <div ref={root} className="flex flex-col gap-6 py-8">
+      {backLink}
       {/*
        * Two columns from lg up. Both stretch to equal height
        * (lg:items-stretch) so the shorter side's card grows to meet the

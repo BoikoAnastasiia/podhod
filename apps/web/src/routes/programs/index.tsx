@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ProgramEditor } from "../../components/ProgramEditor.js";
+import { CheckIcon, XIcon } from "../../components/icons.js";
 import { ProgramIcon, ProgramIconSprite } from "../../components/ProgramIcon.js";
 import {
   PROGRAM_TEMPLATES,
@@ -39,21 +40,6 @@ export const Route = createFileRoute("/programs/")({
 /** The sm breakpoint — below it the editor is a page, not a dialog. */
 const DESKTOP = "(min-width: 40rem)";
 
-/** The tick on the active program's badge. Drawn, like the app's other glyphs. */
-function CheckIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-3.5">
-      <path
-        d="m5 12.5 4.5 4.5L19 7"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 const pill =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
 
@@ -69,7 +55,18 @@ function ProgramDialog({ programId, onClose }: { programId: string; onClose: () 
   useScrollLock(true);
 
   useEffect(() => {
-    ref.current?.showModal();
+    const dialog = ref.current;
+    if (!dialog) return;
+    /*
+     * Light dismiss: a click on the backdrop closes the editor, alongside
+     * Escape. Set as an attribute rather than a JSX prop because React does not
+     * yet know this one and would drop it. Browsers without it simply ignore it
+     * and keep Escape — nothing here depends on it, it is the second of three
+     * ways out. Safe for this dialog specifically because every edit inside it
+     * saves as it is made; there is no draft to lose on a stray click.
+     */
+    dialog.setAttribute("closedby", "any");
+    dialog.showModal();
   }, []);
 
   return (
@@ -77,18 +74,35 @@ function ProgramDialog({ programId, onClose }: { programId: string; onClose: () 
       ref={ref}
       data-testid="program-dialog"
       onClose={onClose}
-      className="m-auto max-h-dvh w-full max-w-content overflow-y-auto rounded-card border border-border bg-surface p-6 backdrop:bg-ink/50"
+      className="relative m-auto max-h-dvh w-full max-w-content overflow-y-auto rounded-card border border-border bg-surface p-6 backdrop:bg-ink/50"
     >
-      <div className="flex justify-end">
-        <button
-          type="button"
-          className={pill}
-          data-testid="close-program-dialog"
-          onClick={() => ref.current?.close()}
-        >
-          {t("programs.close")}
-        </button>
-      </div>
+      {/*
+       * A red cross rather than the word: the editor is a workspace, and the
+       * one control that leaves it should read at a glance without competing
+       * with the exercises for width. Same glyph as a row's remove button —
+       * position tells them apart, the top corner of a dialog being the one
+       * place a cross has meant "close" for thirty years.
+       *
+       * Out of flow, so it costs the layout nothing. In flow this was a
+       * full-width row reserving 44px above the title for one button at the far
+       * end of it, which pushed the whole editor down the dialog.
+       *
+       * It scrolls with the content, because the dialog is its own scroll
+       * container. Sticky was tried and is worse: it parks the cross exactly
+       * where each row's own remove cross sits, so two identical red glyphs
+       * overlap and the click that looks like "remove this exercise" closes the
+       * editor instead. Escape closes, and so does a click outside — see
+       * `closedby` below — so the button scrolling away costs no way out.
+       */}
+      <button
+        type="button"
+        className="absolute right-4 top-4 z-10 flex size-tap-min items-center justify-center rounded-full border border-border bg-surface text-error transition-colors duration-150 hover:border-error"
+        data-testid="close-program-dialog"
+        aria-label={t("programs.close")}
+        onClick={() => ref.current?.close()}
+      >
+        <XIcon />
+      </button>
       <ProgramEditor programId={programId} />
     </dialog>
   );
@@ -389,7 +403,7 @@ function Programs() {
           placeholder={t("programs.search")}
           aria-label={t("programs.search")}
           data-testid="program-search"
-          className="min-h-tap-min flex-1 rounded-full border-2 border-border bg-surface px-5 text-ink shadow-search outline-none transition-colors duration-150 placeholder:text-muted focus:border-accent"
+          className="min-h-tap-min flex-1 rounded-full border-2 border-border bg-surface px-5 text-ink shadow-search transition-colors duration-150 placeholder:text-muted"
         />
         <button
           type="button"

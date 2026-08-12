@@ -6,6 +6,7 @@ import { useI18n } from "../i18n/useI18n.js";
 import { fetchExercises } from "../lib/api.js";
 import { BODY_PARTS } from "../lib/bodyParts.js";
 import { FilterChips } from "./FilterChips.js";
+import { CheckIcon } from "./icons.js";
 
 const pill =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
@@ -103,8 +104,8 @@ export function ExercisePicker({
         <ul
           className={
             results.isPlaceholderData
-              ? "mt-3 flex flex-col gap-2 opacity-60 transition-opacity duration-150"
-              : "mt-3 flex flex-col gap-2 transition-opacity duration-150"
+              ? "mt-3 flex flex-col gap-2 opacity-60 transition-opacity duration-150 sm:grid sm:grid-picker"
+              : "mt-3 flex flex-col gap-2 transition-opacity duration-150 sm:grid sm:grid-picker"
           }
           data-stale={results.isPlaceholderData}
         >
@@ -125,24 +126,27 @@ export function ExercisePicker({
                 onClick={() => onPick(exercise)}
                 className={
                   added
-                    ? "flex w-full cursor-default items-center gap-3 rounded-row border border-accent bg-chip-hover p-2 text-left text-sm text-ink"
-                    : "flex w-full items-center gap-3 rounded-row border border-border bg-surface p-2 text-left text-sm text-ink transition-colors duration-150 hover:bg-chip-hover"
+                    ? "flex h-full w-full cursor-default items-center gap-3 rounded-row border border-accent bg-chip-hover p-2 text-left text-sm text-ink sm:flex-col sm:justify-start sm:text-center"
+                    : "flex h-full w-full items-center gap-3 rounded-row border border-border bg-surface p-2 text-left text-sm text-ink transition-colors duration-150 hover:bg-chip-hover sm:flex-col sm:justify-start sm:text-center"
                 }
               >
                 <span
                   data-testid="picker-thumb"
-                  className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-row bg-canvas"
+                  className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-row bg-canvas sm:size-24"
                 >
                   <img
                     src={mediaUrl(exercise.imagePath)}
                     alt=""
-                    width={56}
-                    height={56}
+                    /* The frame is 56px on a phone and 96 from sm; the
+                       attributes carry the 1:1 ratio, and both sizes stay well
+                       inside the 180px the media licence caps at. */
+                    width={96}
+                    height={96}
                     loading="lazy"
                     className="size-full object-contain"
                   />
                 </span>
-                <span className="flex flex-col gap-1">
+                <span className="flex flex-col gap-1 sm:items-center">
                   <span className="font-medium" data-testid="picker-name">
                     {exercise.name}
                   </span>
@@ -153,17 +157,9 @@ export function ExercisePicker({
                 {added && (
                   <span
                     data-testid="picker-added"
-                    className="ml-auto flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink-on-accent"
+                    className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink-on-accent sm:ml-0 sm:mt-auto"
                   >
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-3.5">
-                      <path
-                        d="m5 12.5 4.5 4.5L19 7"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <CheckIcon />
                     {t("picker.added")}
                   </span>
                 )}

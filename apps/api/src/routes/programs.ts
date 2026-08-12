@@ -1,3 +1,4 @@
+import { schemeAllowedFor } from "@podhod/core";
 import type { ErrorResponse } from "@podhod/schema";
 import {
   createProgramExerciseSchema,
@@ -202,6 +203,11 @@ export const programRoutes = new Hono<AuthedEnv>()
         notes: programExercises.notes,
         name: exerciseTranslations.name,
         imagePath: exercises.imagePath,
+        // The taxonomy travels with the entry so the client can tell which
+        // prescriptions suit it — the same loadProfileOf() the API validates
+        // with, rather than a second rule kept in the UI.
+        equipment: exercises.equipment,
+        bodyPart: exercises.bodyPart,
       })
       .from(programExercises)
       .innerJoin(exercises, eq(programExercises.exerciseId, exercises.id))
@@ -238,6 +244,8 @@ export const programRoutes = new Hono<AuthedEnv>()
               exerciseId: e.exerciseId,
               name: e.name,
               imagePath: e.imagePath,
+              equipment: e.equipment,
+              bodyPart: e.bodyPart,
               position: e.position,
               scheme: scheme.scheme,
               restSeconds: e.restSeconds,
@@ -258,7 +266,11 @@ export const programRoutes = new Hono<AuthedEnv>()
     if (!program) return c.json(fail("not_found", "no such program"), 404);
 
     const [library] = await db
-      .select({ id: exercises.id })
+      .select({
+        id: exercises.id,
+        equipment: exercises.equipment,
+        bodyPart: exercises.bodyPart,
+      })
       .from(exercises)
       .where(eq(exercises.id, parsed.data.exerciseId))
       .limit(1);
@@ -267,27 +279,25 @@ export const programRoutes = new Hono<AuthedEnv>()
     if (!library) return c.json(fail("bad_request", "no such exercise"), 400);
 
     /*
-     * One exercise, once per program. Without this the picker's own guard is
-     * the only thing standing between a double-tap and two identical rows —
-     * and that is exactly how it went wrong in practice: nothing confirmed the
-     * first tap, so the exercise got tapped again.
-     *
-     * Enforced here rather than by a unique index, because programs written
-     * before this rule may already hold duplicates and a migration adding the
-     * index would fail on them.
+     * A prescription has to suit the movement. Kilograms under an elliptical
+     * trainer, or reps under one, are not merely odd to look at — they are a
+     * number the app then computes progressions from. The editor already offers
+     * only the kinds that fit; this is what makes that a rule rather than a
+     * convention, the same argument as validating the icon name.
      */
-    const [duplicate] = await db
-      .select({ id: programExercises.id })
-      .from(programExercises)
-      .where(
-        and(
-          eq(programExercises.programId, program.id),
-          eq(programExercises.exerciseId, parsed.data.exerciseId),
-        ),
-      )
-      .limit(1);
-    if (duplicate) return c.json(fail("conflict", "already in this program"), 409);
+    if (!schemeAllowedFor(parsed.data.scheme.kind, library.equipment, library.bodyPart)) {
+      return c.json(fail("bad_request", "scheme does not suit this exercise"), 400);
+    }
 
+    /*
+     * The same exercise may appear more than once. It briefly could not — a
+     * guard added after accidental double-taps produced identical rows — but
+     * the accident and the intent are different things, and only the accident
+     * belonged to the API. Heavy sets then a lighter back-off set are one
+     * exercise twice, with a weight and a progression rule each; the picker
+     * refuses the accidental second tap, and the editor's duplicate control is
+     * how the deliberate one is made.
+     */
     const [existing] = await db
       .select({ n: count() })
       .from(programExercises)
@@ -326,6 +336,19 @@ export const programRoutes = new Hono<AuthedEnv>()
 
     const patch: Record<string, unknown> = {};
     if (parsed.data.scheme !== undefined) {
+      // The same suitability rule as on create: an edit can swap the kind
+      // outright, so checking only on the way in would leave the back door open.
+      const [library] = await db
+        .select({ equipment: exercises.equipment, bodyPart: exercises.bodyPart })
+        .from(exercises)
+        .where(eq(exercises.id, entry.exerciseId))
+        .limit(1);
+      if (
+        library &&
+        !schemeAllowedFor(parsed.data.scheme.kind, library.equipment, library.bodyPart)
+      ) {
+        return c.json(fail("bad_request", "scheme does not suit this exercise"), 400);
+      }
       // Both columns move together, always.
       patch.schemeType = parsed.data.scheme.kind;
       patch.schemeConfig = JSON.stringify(parsed.data.scheme);

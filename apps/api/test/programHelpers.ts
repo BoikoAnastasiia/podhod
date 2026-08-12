@@ -64,12 +64,20 @@ export function api(cookie: string) {
  * The library rows a program can point at. Only the columns the program API
  * reads back are meaningful; the rest satisfy NOT NULL.
  */
-export async function seedExercises(ids: string[]): Promise<void> {
+export async function seedExercises(
+  ids: string[],
+  /**
+   * Defaults to a barbell chest movement, which every weight-based scheme
+   * suits. Pass something else to exercise the load-profile rules — a
+   * body-weight or cardio row rejects a prescription written in kilograms.
+   */
+  taxonomy: { bodyPart: string; equipment: string } = { bodyPart: "chest", equipment: "barbell" },
+): Promise<void> {
   for (const id of ids) {
     await env.DB.prepare(
-      "INSERT INTO exercises (id, body_part, equipment, target, muscle_group, secondary_muscles, media_id, image_path, gif_path) VALUES (?,'chest','barbell','pectorals','chest','[]','m',?,'g.gif')",
+      "INSERT INTO exercises (id, body_part, equipment, target, muscle_group, secondary_muscles, media_id, image_path, gif_path) VALUES (?,?,?,'pectorals','chest','[]','m',?,'g.gif')",
     )
-      .bind(id, `images/${id}.jpg`)
+      .bind(id, taxonomy.bodyPart, taxonomy.equipment, `images/${id}.jpg`)
       .run();
     await env.DB.prepare(
       "INSERT INTO exercise_translations (exercise_id, lang, name, steps, search_text) VALUES (?,'en',?,'[\"step\"]',?)",

@@ -1,5 +1,7 @@
+import { loadProfileOf, mediaUrl } from "@podhod/core";
 import type { ProgramExercise, SchemeInput } from "@podhod/schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
 import {
@@ -12,6 +14,7 @@ import {
 } from "../lib/api.js";
 import { programKeys } from "../lib/programKeys.js";
 import { ExercisePicker } from "./ExercisePicker.js";
+import { CopyIcon, PencilIcon, XIcon } from "./icons.js";
 import { IconPicker } from "./IconPicker.js";
 import { moved, ReorderButtons } from "./ReorderButtons.js";
 import { SCHEME_DEFAULTS, SchemeEditor } from "./SchemeEditor.js";
@@ -24,24 +27,22 @@ const pill =
 type FixedScheme = Extract<SchemeInput, { kind: "fixed" }>;
 
 /**
- * Drawn here rather than shipped as an asset, the same as the guest glyph in
- * UserMenu — one path is not worth a file. It replaces the "Rename" pill: the
- * title is the thing being edited, so the affordance belongs on the title
- * rather than beside it as a word.
+ * Round icon buttons for the row's actions. The words "Edit scheme" and
+ * "Remove" made every row a paragraph of controls wider than the exercise it
+ * described; the glyphs carry the same two actions in a fraction of the width,
+ * with the label moved to aria-label so nothing is lost to a screen reader.
  */
-function PencilIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4">
-      <path
-        d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16v4Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="m13.5 6.5 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
+/**
+ * The editor's own primary action, in ink rather than the accent. Lime already
+ * carries "New program" on the list behind this dialog; a second lime button
+ * inside it competed with the first for the same emphasis, on a different page.
+ */
+const primaryButton =
+  "flex min-h-tap-min w-max items-center rounded-full bg-ink px-5 text-sm font-semibold text-canvas transition-opacity duration-150 hover:opacity-85";
+const iconButton =
+  "flex size-tap-min items-center justify-center rounded-full border border-border bg-surface text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
+const dangerIconButton =
+  "flex size-tap-min items-center justify-center rounded-full border border-border bg-surface text-error transition-colors duration-150 hover:border-error";
 
 /**
  * The weight, editable right on the row — the trainer's-sheet interaction:
@@ -137,14 +138,56 @@ export function ProgramEditor({ programId }: { programId: string }) {
      * refetched program — would put the confirmation behind a round trip that
      * the user has no reason to wait for.
      */
-    mutationFn: async (picked: { id: string; name: string }) => {
-      await addExercise(programId, { exerciseId: picked.id, scheme: SCHEME_DEFAULTS.fixed });
+    mutationFn: async (picked: { id: string; name: string; equipment: string; bodyPart: string }) => {
+      /*
+       * The default follows the equipment, not a constant. Every exercise used
+       * to arrive as 4×10 · 20 kg, which for the 451 movements in this library
+       * that carry no external load was a weight nobody lifts — most visibly
+       * "walk elliptical cross trainer, 4×10 · 20 kg".
+       */
+      const { fallback } = loadProfileOf(picked.equipment, picked.bodyPart);
+      await addExercise(programId, { exerciseId: picked.id, scheme: SCHEME_DEFAULTS[fallback] });
       return picked;
     },
     onSuccess: async (picked) => {
       toast(
         t("toast.exerciseAdded")
           .replace("{exercise}", picked.name)
+          .replace("{program}", program.data?.name ?? ""),
+      );
+      await invalidate();
+    },
+  });
+
+  /**
+   * A second row for the same exercise, carrying the first one's prescription
+   * as its starting point — the working set and its back-off set are one
+   * exercise twice, and the copy is only useful if the weight is then changed.
+   *
+   * It lands directly beneath its original rather than at the end of the list,
+   * which costs a second request: the add endpoint always appends, so the copy
+   * is placed by sending the order we want. A duplicate that appears fourteen
+   * rows below the thing it duplicates is not a duplicate anyone can use.
+   */
+  const duplicateEntry = useMutation({
+    mutationFn: async (entry: ProgramExercise) => {
+      const created = await addExercise(programId, {
+        exerciseId: entry.exerciseId,
+        scheme: entry.scheme,
+        restSeconds: entry.restSeconds,
+        notes: entry.notes,
+      });
+      if (!created) throw new Error("internal");
+
+      const ids = entries.map((e) => e.id);
+      const after = ids.indexOf(entry.id) + 1;
+      await reorderExercises(programId, [...ids.slice(0, after), created, ...ids.slice(after)]);
+      return entry;
+    },
+    onSuccess: async (entry) => {
+      toast(
+        t("toast.exerciseAdded")
+          .replace("{exercise}", entry.name)
           .replace("{program}", program.data?.name ?? ""),
       );
       await invalidate();
@@ -198,8 +241,37 @@ export function ProgramEditor({ programId }: { programId: string }) {
       data-entry-position={entry.position}
       className="rounded-row border border-border px-3 py-2 text-sm text-ink"
     >
-      <div className="flex min-h-row-min flex-wrap items-center justify-between gap-2">
-        <span className="flex flex-wrap items-center gap-2">
+      {/*
+       * The actions never wrap; the name does. With everything wrapping, one
+       * long exercise name pushed the whole control cluster onto a second line
+       * and that row alone grew to twice the height of its neighbours.
+       */}
+      <div className="flex min-h-row-min items-center justify-between gap-2">
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          {/*
+           * The exercise itself, as a way in rather than only a picture: a
+           * program row names a movement, and "what does that actually look
+           * like" is a question you have while reading the row. It carries
+           * `from` so the library page can offer the way back — see that
+           * route's note on why the id travels in the URL instead of history.
+           */}
+          <Link
+            to="/library/$id"
+            params={{ id: entry.exerciseId }}
+            search={{ from: programId }}
+            data-testid="entry-preview"
+            aria-label={t("entry.preview").replace("{name}", entry.name)}
+            className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-row bg-canvas transition-shadow duration-200 ease-out hover:shadow-card-hover"
+          >
+            <img
+              src={mediaUrl(entry.imagePath)}
+              alt=""
+              width={56}
+              height={56}
+              loading="lazy"
+              className="size-full object-contain"
+            />
+          </Link>
           <span className="font-medium" data-testid="entry-name">
             {entry.name}
           </span>
@@ -218,7 +290,7 @@ export function ProgramEditor({ programId }: { programId: string }) {
             <SchemeSummary scheme={entry.scheme} />
           )}
         </span>
-        <span className="flex flex-wrap items-center gap-2">
+        <span className="flex shrink-0 items-center gap-2">
           <ReorderButtons
             index={index}
             count={entries.length}
@@ -228,11 +300,23 @@ export function ProgramEditor({ programId }: { programId: string }) {
           />
           <button
             type="button"
-            className={pill}
+            className={iconButton}
             data-testid="edit-entry"
+            aria-label={t("entry.edit")}
+            aria-expanded={editingScheme === entry.id}
             onClick={() => setEditingScheme(editingScheme === entry.id ? null : entry.id)}
           >
-            {t("entry.edit")}
+            <PencilIcon />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            data-testid="duplicate-entry"
+            aria-label={t("entry.duplicate").replace("{name}", entry.name)}
+            disabled={duplicateEntry.isPending}
+            onClick={() => duplicateEntry.mutate(entry)}
+          >
+            <CopyIcon />
           </button>
           {confirmingRemove === entry.id ? (
             <>
@@ -255,11 +339,12 @@ export function ProgramEditor({ programId }: { programId: string }) {
           ) : (
             <button
               type="button"
-              className={pill}
+              className={dangerIconButton}
               data-testid="remove-entry"
+              aria-label={t("entry.remove")}
               onClick={() => setConfirmingRemove(entry.id)}
             >
-              {t("entry.remove")}
+              <XIcon />
             </button>
           )}
         </span>
@@ -273,6 +358,7 @@ export function ProgramEditor({ programId }: { programId: string }) {
             </p>
           )}
           <SchemeEditor
+            kinds={loadProfileOf(entry.equipment, entry.bodyPart).allowed}
             initial={entry.scheme}
             submitLabel={t("entry.save")}
             pending={updateEntry.isPending}
@@ -354,7 +440,7 @@ export function ProgramEditor({ programId }: { programId: string }) {
           {!pickerOpen && (
             <button
               type="button"
-              className={`${pill} mt-4`}
+              className={`${primaryButton} mt-4`}
               data-testid="add-exercise"
               onClick={() => setPickerOpen(true)}
             >
@@ -371,7 +457,14 @@ export function ProgramEditor({ programId }: { programId: string }) {
               )}
               <ExercisePicker
                 addedIds={new Set(entries.map((entry) => entry.exerciseId))}
-                onPick={(exercise) => add.mutate({ id: exercise.id, name: exercise.name })}
+                onPick={(exercise) =>
+                  add.mutate({
+                    id: exercise.id,
+                    name: exercise.name,
+                    equipment: exercise.equipment,
+                    bodyPart: exercise.bodyPart,
+                  })
+                }
                 onClose={() => setPickerOpen(false)}
               />
             </>

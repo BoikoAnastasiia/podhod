@@ -142,6 +142,8 @@ describe("programDetailSchema", () => {
           exerciseId: "0001",
           name: "bench press",
           imagePath: "images/0001.jpg",
+          equipment: "barbell",
+          bodyPart: "chest",
           position: 0,
           scheme: LINEAR,
           restSeconds: 90,

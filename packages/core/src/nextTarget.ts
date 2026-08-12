@@ -1,4 +1,6 @@
+import { bodyweightTarget } from "./schemes/bodyweight.js";
 import { doubleTarget } from "./schemes/double.js";
+import { durationTarget } from "./schemes/duration.js";
 import { fixedTarget } from "./schemes/fixed.js";
 import { linearTarget } from "./schemes/linear.js";
 import { rpeTarget } from "./schemes/rpe.js";
@@ -26,10 +28,15 @@ export function nextTarget(
       return doubleTarget(scheme, history, options);
     case "rpe":
       return rpeTarget(scheme, history, options);
+    case "bodyweight":
+      return bodyweightTarget(scheme, history, options);
+    case "duration":
+      return durationTarget(scheme, history);
     default: {
-      // Adding a fifth scheme fails to compile here rather than falling through
-      // to a wrong answer at runtime. The throw is unreachable while the union
-      // is exhaustive; it exists for callers who reach this from untyped JSON.
+      // Adding a seventh scheme fails to compile here rather than falling
+      // through to a wrong answer at runtime. The throw is unreachable while
+      // the union is exhaustive; it exists for callers reaching this from
+      // untyped JSON.
       const unreachable: never = scheme;
       throw new Error(`unhandled scheme: ${JSON.stringify(unreachable)}`);
     }

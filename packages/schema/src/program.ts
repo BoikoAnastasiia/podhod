@@ -123,6 +123,9 @@ export const programExerciseSchema = z.object({
   exerciseId: z.string(),
   name: z.string(),
   imagePath: z.string(),
+  /** Raw taxonomy terms, untranslated: they key the load-profile rules. */
+  equipment: z.string(),
+  bodyPart: z.string(),
   position: z.number().int().nonnegative(),
   scheme: schemeSchema,
   restSeconds: z.number().nullable(),

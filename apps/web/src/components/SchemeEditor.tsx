@@ -5,13 +5,27 @@ import type { DictKey } from "../i18n/useI18n.js";
 
 export type SchemeKind = SchemeInput["kind"];
 
-export const SCHEME_KINDS = ["fixed", "linear", "double", "rpe"] as const;
+/**
+ * Every kind that exists. Which of them an exercise may actually use is decided
+ * by loadProfileOf() in @podhod/core, from the equipment — a barbell offers the
+ * four weight rules, a treadmill offers only time.
+ */
+export const SCHEME_KINDS = [
+  "fixed",
+  "linear",
+  "double",
+  "rpe",
+  "bodyweight",
+  "duration",
+] as const;
 
 export const SCHEME_KIND_LABEL: Record<SchemeKind, DictKey> = {
   fixed: "scheme.kind.fixed",
   linear: "scheme.kind.linear",
   double: "scheme.kind.double",
   rpe: "scheme.kind.rpe",
+  bodyweight: "scheme.kind.bodyweight",
+  duration: "scheme.kind.duration",
 };
 
 type FieldSpec = {
@@ -51,6 +65,16 @@ export const SCHEME_FIELDS: Record<SchemeKind, readonly FieldSpec[]> = {
     { key: "targetRpe", label: "scheme.field.targetRpe" },
     { key: "adjustPct", label: "scheme.field.adjustPct", pct: true },
   ],
+  bodyweight: [
+    { key: "sets", label: "scheme.field.sets" },
+    { key: "reps", label: "scheme.field.reps" },
+    // Signed on purpose — see the schema. Negative is an assisted machine.
+    { key: "addedWeightKg", label: "scheme.field.addedWeightKg" },
+  ],
+  duration: [
+    { key: "sets", label: "scheme.field.sets" },
+    { key: "seconds", label: "scheme.field.seconds" },
+  ],
 };
 
 /**
@@ -76,6 +100,10 @@ export const SCHEME_DEFAULTS: Record<SchemeKind, SchemeInput> = {
   },
   double: { kind: "double", sets: 3, repLow: 8, repHigh: 12, incrementKg: 2.5 },
   rpe: { kind: "rpe", sets: 3, reps: 8, targetRpe: 8, adjustPct: 0.05 },
+  // No added weight by default: most of these are simply your own body.
+  bodyweight: { kind: "bodyweight", sets: 3, reps: 12, addedWeightKg: 0 },
+  // Twenty minutes, the length of an ordinary cardio slot.
+  duration: { kind: "duration", sets: 1, seconds: 1200 },
 };
 
 /**
@@ -144,12 +172,20 @@ export function SchemeEditor({
   pending,
   onSubmit,
   onCancel,
+  /**
+   * Which kinds this exercise may use. Defaults to all of them for callers with
+   * no exercise in hand; the program editor passes what loadProfileOf() allows,
+   * which is what keeps kilograms off a treadmill. The API applies the same rule
+   * so a hand-made request cannot get round it.
+   */
+  kinds = SCHEME_KINDS,
 }: {
   initial: SchemeInput;
   submitLabel: string;
   pending?: boolean;
   onSubmit: (scheme: SchemeInput) => void;
   onCancel: () => void;
+  kinds?: readonly SchemeKind[];
 }) {
   const { t } = useI18n();
   const [kind, setKind] = useState<SchemeKind>(initial.kind);
@@ -158,6 +194,8 @@ export function SchemeEditor({
     linear: rawFromScheme(SCHEME_DEFAULTS.linear),
     double: rawFromScheme(SCHEME_DEFAULTS.double),
     rpe: rawFromScheme(SCHEME_DEFAULTS.rpe),
+    bodyweight: rawFromScheme(SCHEME_DEFAULTS.bodyweight),
+    duration: rawFromScheme(SCHEME_DEFAULTS.duration),
     [initial.kind]: rawFromScheme(initial),
   }));
 
@@ -174,7 +212,7 @@ export function SchemeEditor({
       <fieldset>
         <legend className="text-sm font-medium text-muted">{t("scheme.kindLabel")}</legend>
         <div className="mt-2 flex flex-wrap gap-2">
-          {SCHEME_KINDS.map((k) => (
+          {kinds.map((k) => (
             <button
               key={k}
               type="button"

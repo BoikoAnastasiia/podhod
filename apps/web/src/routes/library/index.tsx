@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ExerciseCard } from "../../components/ExerciseCard.js";
@@ -31,6 +31,9 @@ function Library() {
     queryFn: ({ pageParam }) => fetchExercises({ lang, q, bodyPart, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    /* The grid holds its last results while the next filter loads, for the
+       same reason the picker does — see the note there. */
+    placeholderData: keepPreviousData,
   });
 
   const items = data?.pages.flatMap((page) => page.items) ?? [];

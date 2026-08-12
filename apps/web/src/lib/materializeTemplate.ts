@@ -20,6 +20,7 @@ export async function materializeTemplate(
     name: template.name[lang],
     notes: null,
     icon: template.icon,
+    iconColor: template.iconColor,
   });
   if (!programId) throw new Error("internal");
 

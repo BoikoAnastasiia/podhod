@@ -75,14 +75,27 @@ describe("exercises within a program", () => {
     expect((await entriesOf(programId, "ru"))[0]?.name).toBe("упражнение e1");
   });
 
-  it("allows the same exercise twice in one workout, which is a real training pattern", async () => {
+  /**
+   * This rule reverses an earlier one. The same exercise twice in a workout —
+   * heavy then light, two different schemes — is a real training pattern, and
+   * the API used to allow it for that reason. It is forbidden now because
+   * accidental duplicates turned out to be the far more common case: nothing
+   * confirmed the first tap in the picker, so people tapped again and got two
+   * identical rows (the owner's call, 2026-08-12, from exactly that).
+   *
+   * The picker also marks what a program already holds, so the duplicate is
+   * refused before it is attempted; this is the backstop.
+   */
+  it("refuses the same exercise twice in one workout", async () => {
     const programId = await newProgram("twice");
     await addOk(programId, { exerciseId: "e1", scheme: LINEAR });
-    await addOk(programId, { exerciseId: "e1", scheme: DOUBLE });
+
+    const res = await add(programId, { exerciseId: "e1", scheme: DOUBLE });
+    expect(res.status).toBe(409);
 
     const entries = await entriesOf(programId);
-    expect(entries).toHaveLength(2);
-    expect(entries.map((e) => e.position)).toEqual([0, 1]);
+    expect(entries).toHaveLength(1);
+    expect(entries.map((e) => e.position)).toEqual([0]);
   });
 
   it("rejects a malformed scheme and stores nothing", async () => {

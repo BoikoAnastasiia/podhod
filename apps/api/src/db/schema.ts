@@ -105,8 +105,17 @@ export const programs = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     notes: text("notes"),
-    /** A single emoji, or null for no icon. Display-only; never searched. */
+    /**
+     * One of PROGRAM_ICON_NAMES, or null for no icon. Held emoji until
+     * migration 0005 rewrote them. Display-only; never searched.
+     */
     icon: text("icon"),
+    /**
+     * A colour preset key ("ink", "lime", …) or a custom "#rrggbb". Null means
+     * the default, which the client resolves to ink. Kept as its own column
+     * rather than packed into `icon` so each stays independently validatable.
+     */
+    iconColor: text("icon_color"),
     isActive: integer("is_active").notNull().default(0),
     createdAt: integer("created_at").notNull(),
     archivedAt: integer("archived_at"),

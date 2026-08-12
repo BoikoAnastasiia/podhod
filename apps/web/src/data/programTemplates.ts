@@ -1,4 +1,4 @@
-import type { SchemeInput } from "@podhod/schema";
+import type { ProgramIconColorPreset, ProgramIconName, SchemeInput } from "@podhod/schema";
 
 export type Localized = { en: string; ru: string };
 
@@ -17,29 +17,13 @@ export type ProgramTemplate = {
   id: string;
   name: Localized;
   description: Localized;
-  /** One of PROGRAM_ICONS — carried onto the copy, changeable afterwards. */
-  icon: string;
+  /** One of PROGRAM_ICON_NAMES — carried onto the copy, changeable afterwards. */
+  icon: ProgramIconName;
+  /** A preset key from PROGRAM_ICON_COLOR_PRESETS, carried onto the copy too. */
+  iconColor: ProgramIconColorPreset;
   tags: TemplateTag[];
   exercises: TemplateExercise[];
 };
-
-/**
- * The preset row the IconPicker offers; templates draw from the same set.
- * Emoji rather than an icon library: zero dependencies, and the parked design
- * pass can swap these for real iconography without a data migration.
- */
-export const PROGRAM_ICONS = [
-  "💪",
-  "🦵",
-  "🍑",
-  "🏋️",
-  "🤸",
-  "🏃",
-  "⚡",
-  "🔥",
-  "🧘",
-  "❤️",
-] as const;
 
 const linear = (sets: number, reps: number, incrementKg: number): SchemeInput => ({
   kind: "linear",
@@ -74,7 +58,8 @@ export const PROGRAM_TEMPLATES: ProgramTemplate[] = [
       en: "One focused lower-body session: squat as the anchor, then press, hinge and lunge.",
       ru: "Одна прицельная тренировка низа: присед как основа, затем жим, наклон и выпады.",
     },
-    icon: "🦵",
+    icon: "quads",
+    iconColor: "lime",
     tags: ["legs"],
     exercises: [
       { exerciseId: "0043", scheme: linear(3, 5, 2.5) }, // barbell full squat
@@ -91,7 +76,8 @@ export const PROGRAM_TEMPLATES: ProgramTemplate[] = [
       en: "Glute-first training: bridge, hinge, abduction and a power finisher.",
       ru: "Акцент на ягодицы: мост, наклон, отведение и мощная концовка.",
     },
-    icon: "🍑",
+    icon: "core",
+    iconColor: "orange",
     tags: ["glutes", "legs"],
     exercises: [
       { exerciseId: "1409", scheme: linear(3, 8, 2.5) }, // barbell glute bridge

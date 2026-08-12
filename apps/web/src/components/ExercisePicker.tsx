@@ -1,6 +1,6 @@
 import { mediaUrl } from "@podhod/core";
 import type { ExerciseListItem } from "@podhod/schema";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
 import { fetchExercises } from "../lib/api.js";
@@ -28,9 +28,17 @@ const PICKER_LIMIT = 20;
 export function ExercisePicker({
   onPick,
   onClose,
+  /**
+   * What the program already holds. A picked exercise stays on screen — the
+   * panel is built for adding several in a row — so without this the only
+   * feedback for a tap was the row appearing somewhere above the panel, off
+   * screen more often than not. Tapping again then bought a duplicate.
+   */
+  addedIds,
 }: {
   onPick: (exercise: ExerciseListItem) => void;
   onClose: () => void;
+  addedIds: ReadonlySet<string>;
 }) {
   const { lang, t, term } = useI18n();
   const [q, setQ] = useState("");
@@ -39,6 +47,15 @@ export function ExercisePicker({
   const results = useQuery({
     queryKey: ["exercises", "picker", lang, q, bodyPart],
     queryFn: () => fetchExercises({ lang, q, bodyPart, limit: PICKER_LIMIT }),
+    /*
+     * Keep the previous results on screen while the next ones load. The query
+     * key carries the search text and the body part, so every keystroke and
+     * every chip is a *different* query — and without this each one drops
+     * straight back to `isPending`, unmounting the whole list and replacing it
+     * with one line of "Loading…". Measured: five frames of an empty list
+     * across three keystrokes. That is the flicker; the fetch was never slow.
+     */
+    placeholderData: keepPreviousData,
   });
 
   return (
@@ -81,8 +98,19 @@ export function ExercisePicker({
       )}
 
       {results.isSuccess && results.data.items.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-2">
-          {results.data.items.map((exercise) => (
+        /* Stale results stay put but dim, so "still the old list" is visible
+           without the layout moving. */
+        <ul
+          className={
+            results.isPlaceholderData
+              ? "mt-3 flex flex-col gap-2 opacity-60 transition-opacity duration-150"
+              : "mt-3 flex flex-col gap-2 transition-opacity duration-150"
+          }
+          data-stale={results.isPlaceholderData}
+        >
+          {results.data.items.map((exercise) => {
+            const added = addedIds.has(exercise.id);
+            return (
             <li key={exercise.id}>
               {/* Always with a thumbnail (owner's call — a toggle briefly
                   existed and lost): a picture turns a cryptic name into
@@ -91,8 +119,15 @@ export function ExercisePicker({
               <button
                 type="button"
                 data-testid="picker-result"
+                data-added={added}
+                disabled={added}
+                aria-label={added ? `${exercise.name} — ${t("picker.added")}` : undefined}
                 onClick={() => onPick(exercise)}
-                className="flex w-full items-center gap-3 rounded-row border border-border bg-surface p-2 text-left text-sm text-ink transition-colors duration-150 hover:bg-chip-hover"
+                className={
+                  added
+                    ? "flex w-full cursor-default items-center gap-3 rounded-row border border-accent bg-chip-hover p-2 text-left text-sm text-ink"
+                    : "flex w-full items-center gap-3 rounded-row border border-border bg-surface p-2 text-left text-sm text-ink transition-colors duration-150 hover:bg-chip-hover"
+                }
               >
                 <span
                   data-testid="picker-thumb"
@@ -108,14 +143,34 @@ export function ExercisePicker({
                   />
                 </span>
                 <span className="flex flex-col gap-1">
-                  <span className="font-medium">{exercise.name}</span>
+                  <span className="font-medium" data-testid="picker-name">
+                    {exercise.name}
+                  </span>
                   <span className="text-xs text-muted">
                     {term(exercise.bodyPart)} · {term(exercise.equipment)}
                   </span>
                 </span>
+                {added && (
+                  <span
+                    data-testid="picker-added"
+                    className="ml-auto flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink-on-accent"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-3.5">
+                      <path
+                        d="m5 12.5 4.5 4.5L19 7"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    {t("picker.added")}
+                  </span>
+                )}
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

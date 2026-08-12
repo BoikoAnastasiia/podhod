@@ -10,10 +10,48 @@ const name = z.string().trim().min(1).max(80);
 const notes = z.string().trim().max(2000).nullish();
 const id = z.string().min(1).max(64);
 const restSeconds = z.number().int().min(0).max(3600).nullish();
-// 16 chars fits any single emoji, including ZWJ sequences like 🏋️‍♀️.
-const icon = z.string().trim().min(1).max(16).nullish();
 
-export const createProgramSchema = z.object({ name, notes, icon });
+/**
+ * The program icons, by name. These were emoji until migration 0005; they are
+ * now the ten glyphs of the muscle-group sheet, split into a sprite by the web
+ * app's scripts/build-icons.mjs. The names are stored in `programs.icon`, so
+ * this list and the generator's are one fact in two places — a test in the web
+ * app asserts the generated sprite covers exactly these names.
+ *
+ * Validating against an enum rather than accepting any string is the point of
+ * the change: an icon that does not exist in the sprite renders as nothing at
+ * all, and the API is where that should be caught.
+ */
+export const PROGRAM_ICON_NAMES = [
+  "back",
+  "cardio",
+  "chest",
+  "forearms",
+  "calves",
+  "neck",
+  "shoulders",
+  "biceps",
+  "quads",
+  "core",
+] as const;
+export type ProgramIconName = (typeof PROGRAM_ICON_NAMES)[number];
+
+/**
+ * Preset colours are stored as their *key*, not as a hex value, so that they
+ * resolve through the theme's tokens at render time — a stored "#171717" would
+ * stay black when the dark theme flips ink to near-white, whereas "ink" follows
+ * it. A custom colour has no token to follow and is stored as the hex the user
+ * picked.
+ */
+export const PROGRAM_ICON_COLOR_PRESETS = ["ink", "lime", "orange", "blue", "green"] as const;
+export type ProgramIconColorPreset = (typeof PROGRAM_ICON_COLOR_PRESETS)[number];
+
+const icon = z.enum(PROGRAM_ICON_NAMES).nullish();
+const iconColor = z
+  .union([z.enum(PROGRAM_ICON_COLOR_PRESETS), z.string().regex(/^#[0-9a-fA-F]{6}$/)])
+  .nullish();
+
+export const createProgramSchema = z.object({ name, notes, icon, iconColor });
 export type CreateProgramInput = z.infer<typeof createProgramSchema>;
 
 /**
@@ -26,6 +64,7 @@ export const updateProgramSchema = z.object({
   name: name.optional(),
   notes,
   icon,
+  iconColor,
   isActive: z.boolean().optional(),
   archived: z.boolean().optional(),
 });
@@ -59,7 +98,14 @@ export const programSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
   notes: z.string().nullable(),
+  /*
+   * Read back as a plain string, not the enum: a row written before migration
+   * 0005 — or by a future version that knows a glyph this client does not —
+   * must not fail the whole response's parse. The renderer treats an unknown
+   * name as "no icon" instead.
+   */
   icon: z.string().nullable(),
+  iconColor: z.string().nullable(),
   isActive: z.boolean(),
   archivedAt: z.number().nullable(),
   createdAt: z.number(),

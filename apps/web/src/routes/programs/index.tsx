@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ProgramEditor } from "../../components/ProgramEditor.js";
+import { ProgramIcon, ProgramIconSprite } from "../../components/ProgramIcon.js";
 import {
   PROGRAM_TEMPLATES,
   type ProgramTemplate,
@@ -14,6 +15,7 @@ import { createProgram, deleteProgram, fetchPrograms, updateProgram } from "../.
 import { materializeTemplate } from "../../lib/materializeTemplate.js";
 import { programKeys } from "../../lib/programKeys.js";
 import { requireSession } from "../../lib/requireSession.js";
+import { useScrollLock } from "../../lib/useScrollLock.js";
 
 /**
  * The first screen that is not the library. Gated the same way `/settings` is
@@ -37,6 +39,21 @@ export const Route = createFileRoute("/programs/")({
 /** The sm breakpoint — below it the editor is a page, not a dialog. */
 const DESKTOP = "(min-width: 40rem)";
 
+/** The tick on the active program's badge. Drawn, like the app's other glyphs. */
+function CheckIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-3.5">
+      <path
+        d="m5 12.5 4.5 4.5L19 7"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 const pill =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
 
@@ -48,6 +65,8 @@ const pill =
 function ProgramDialog({ programId, onClose }: { programId: string; onClose: () => void }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
+  // Mounted only while open, so the lock's lifetime is the dialog's.
+  useScrollLock(true);
 
   useEffect(() => {
     ref.current?.showModal();
@@ -190,9 +209,7 @@ function Programs() {
         className="flex flex-col gap-3 rounded-card border border-border bg-surface p-5"
       >
         <div className="flex flex-wrap items-center gap-2">
-          <span aria-hidden="true" className="text-2xl">
-            {template.icon}
-          </span>
+          <ProgramIcon name={template.icon} color={template.iconColor} className="size-7" />
           <h3 className="text-lg font-semibold text-ink">{template.name[lang]}</h3>
         </div>
         <p className="text-sm text-muted">{template.description[lang]}</p>
@@ -252,13 +269,21 @@ function Programs() {
       data-testid="program-card"
       data-program-active={program.isActive}
       onClick={() => openProgram(program.id)}
-      className="cursor-pointer rounded-card border border-border bg-surface p-5 transition-shadow duration-200 ease-out hover:shadow-card-hover"
+      /*
+       * The active program is the one you are training right now, so it gets
+       * the pale accent fill and an accent border rather than only a badge —
+       * the owner's call (2026-08-12): a single small pill among a column of
+       * identical white cards was not telling anyone which one was chosen.
+       * --color-chip-hover carries a dark-olive value in the dark theme, so
+       * the tint stays a tint on both canvases instead of a white slab.
+       */
+      className={`cursor-pointer rounded-card border p-5 transition-shadow duration-200 ease-out hover:shadow-card-hover ${
+        program.isActive ? "border-accent bg-chip-hover" : "border-border bg-surface"
+      }`}
     >
       <div className="flex flex-wrap items-center gap-3">
         {program.icon && (
-          <span aria-hidden="true" className="text-xl">
-            {program.icon}
-          </span>
+          <ProgramIcon name={program.icon} color={program.iconColor} className="size-6" />
         )}
         <Link
           to="/programs/$programId"
@@ -272,8 +297,9 @@ function Programs() {
         {program.isActive && (
           <span
             data-testid="active-badge"
-            className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink-on-accent"
+            className="flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink-on-accent"
           >
+            <CheckIcon />
             {t("programs.active")}
           </span>
         )}
@@ -347,6 +373,12 @@ function Programs() {
 
   return (
     <div className="mx-auto w-full max-w-content px-4 py-8">
+      {/*
+       * The glyph definitions every icon on this page — cards, templates and
+       * the editor's own picker — references. See the detail route for why the
+       * sheet is mounted per program route rather than in the root shell.
+       */}
+      <ProgramIconSprite />
       <h1 className="text-2xl font-semibold text-ink">{t("programs.heading")}</h1>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">

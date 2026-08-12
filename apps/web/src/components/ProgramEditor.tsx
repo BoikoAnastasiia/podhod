@@ -1,4 +1,4 @@
-import type { CreateProgramExerciseInput, ProgramExercise, SchemeInput } from "@podhod/schema";
+import type { ProgramExercise, SchemeInput } from "@podhod/schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
@@ -16,11 +16,32 @@ import { IconPicker } from "./IconPicker.js";
 import { moved, ReorderButtons } from "./ReorderButtons.js";
 import { SCHEME_DEFAULTS, SchemeEditor } from "./SchemeEditor.js";
 import { SchemeSummary } from "./SchemeSummary.js";
+import { useToast } from "./Toast.js";
 
 const pill =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
 
 type FixedScheme = Extract<SchemeInput, { kind: "fixed" }>;
+
+/**
+ * Drawn here rather than shipped as an asset, the same as the guest glyph in
+ * UserMenu — one path is not worth a file. It replaces the "Rename" pill: the
+ * title is the thing being edited, so the affordance belongs on the title
+ * rather than beside it as a word.
+ */
+function PencilIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4">
+      <path
+        d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16v4Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="m13.5 6.5 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 /**
  * The weight, editable right on the row — the trainer's-sheet interaction:
@@ -82,6 +103,7 @@ function WeightField({
 export function ProgramEditor({ programId }: { programId: string }) {
   const { t, lang } = useI18n();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const [pickerOpen, setPickerOpen] = useState(false);
   /** Which entry's scheme is open in an editor, and which is one click from removal. */
@@ -109,8 +131,24 @@ export function ProgramEditor({ programId }: { programId: string }) {
    * is the common case, and the weight is editable right on the row.
    */
   const add = useMutation({
-    mutationFn: (input: CreateProgramExerciseInput) => addExercise(programId, input),
-    onSuccess: invalidate,
+    /*
+     * The exercise's name rides along purely so the toast can name it: the
+     * picker already knows it, and the alternative — reading it back out of the
+     * refetched program — would put the confirmation behind a round trip that
+     * the user has no reason to wait for.
+     */
+    mutationFn: async (picked: { id: string; name: string }) => {
+      await addExercise(programId, { exerciseId: picked.id, scheme: SCHEME_DEFAULTS.fixed });
+      return picked;
+    },
+    onSuccess: async (picked) => {
+      toast(
+        t("toast.exerciseAdded")
+          .replace("{exercise}", picked.name)
+          .replace("{program}", program.data?.name ?? ""),
+      );
+      await invalidate();
+    },
   });
 
   const updateEntry = useMutation({
@@ -254,11 +292,11 @@ export function ProgramEditor({ programId }: { programId: string }) {
       {program.isSuccess && (
         <>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            {program.data.icon && (
-              <span aria-hidden="true" className="text-2xl" data-testid="program-icon">
-                {program.data.icon}
-              </span>
-            )}
+            <IconPicker
+              programId={programId}
+              icon={program.data.icon}
+              iconColor={program.data.iconColor}
+            />
             {renaming !== null ? (
               <form
                 className="flex flex-1 flex-wrap items-center gap-2"
@@ -293,13 +331,13 @@ export function ProgramEditor({ programId }: { programId: string }) {
                 </h1>
                 <button
                   type="button"
-                  className={pill}
                   data-testid="rename-program"
+                  aria-label={t("programs.rename")}
                   onClick={() => setRenaming(program.data.name)}
+                  className="flex size-tap-min items-center justify-center rounded-full text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink"
                 >
-                  {t("programs.rename")}
+                  <PencilIcon />
                 </button>
-                <IconPicker programId={programId} current={program.data.icon} />
               </>
             )}
           </div>
@@ -332,9 +370,8 @@ export function ProgramEditor({ programId }: { programId: string }) {
                 </p>
               )}
               <ExercisePicker
-                onPick={(exercise) =>
-                  add.mutate({ exerciseId: exercise.id, scheme: SCHEME_DEFAULTS.fixed })
-                }
+                addedIds={new Set(entries.map((entry) => entry.exerciseId))}
+                onPick={(exercise) => add.mutate({ id: exercise.id, name: exercise.name })}
                 onClose={() => setPickerOpen(false)}
               />
             </>

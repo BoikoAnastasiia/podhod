@@ -37,7 +37,7 @@ const SESSION_NAV_ITEMS = [{ to: "/programs", labelKey: "nav.programs" }] as con
 const navLink =
   "flex min-h-tap-min items-center text-sm font-semibold text-header-ink decoration-accent decoration-2 underline-offset-4 hover:underline";
 
-export function Nav() {
+export function Nav({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
   const { data: session, isPending } = authClient.useSession();
 
@@ -48,8 +48,15 @@ export function Nav() {
      * beside the wordmark; from sm it slots back between wordmark and
      * avatar as a right-hand group (sm:ml-auto).
      */
+    /*
+     * `compact` is only ever true below sm (the root's hook gates it on the
+     * same media query), so the sm:flex half of this pair is what keeps a
+     * desktop header from ever losing its nav.
+     */
     <nav
-      className="order-3 flex w-full flex-wrap items-center gap-x-5 gap-y-1 sm:order-2 sm:ml-auto sm:w-auto"
+      className={`${
+        compact ? "hidden sm:flex" : "flex"
+      } order-3 w-full flex-wrap items-center gap-x-5 gap-y-1 sm:order-2 sm:ml-auto sm:w-auto`}
       aria-label={t("menu.navLabel")}
     >
       {NAV_ITEMS.map((item) => (

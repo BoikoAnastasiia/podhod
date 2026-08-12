@@ -53,13 +53,13 @@ describe("program CRUD", () => {
   });
 
   it("stores, changes and clears an icon", async () => {
-    const res = await client.post("/api/programs", { name: "iconed", icon: "🦵" });
+    const res = await client.post("/api/programs", { name: "iconed", icon: "quads" });
     expect(res.status).toBe(201);
     const { id } = await client.json<{ id: string }>(res);
-    expect((await find(id)).icon).toBe("🦵");
+    expect((await find(id)).icon).toBe("quads");
 
-    expect((await client.patch(`/api/programs/${id}`, { icon: "🍑" })).status).toBe(204);
-    expect((await find(id)).icon).toBe("🍑");
+    expect((await client.patch(`/api/programs/${id}`, { icon: "biceps" })).status).toBe(204);
+    expect((await find(id)).icon).toBe("biceps");
 
     // null clears rather than being ignored — "no icon" is a state someone
     // chooses, not the absence of a choice.
@@ -67,9 +67,33 @@ describe("program CRUD", () => {
     expect((await find(id)).icon).toBeNull();
   });
 
-  it("defaults the icon to null when a create does not send one", async () => {
+  /**
+   * The icon column stopped being free text in migration 0005. An unknown name
+   * renders as nothing at all, so rejecting it at the API is the only place the
+   * mistake is visible.
+   */
+  it("rejects an icon that is not one of the sprite's glyphs", async () => {
+    const res = await client.post("/api/programs", { name: "bad icon", icon: "🦵" });
+    expect(res.status).toBe(400);
+  });
+
+  it("stores a preset colour key and a custom hex, and rejects anything else", async () => {
+    const id = await create("coloured");
+    expect((await client.patch(`/api/programs/${id}`, { iconColor: "lime" })).status).toBe(204);
+    expect((await find(id)).iconColor).toBe("lime");
+
+    expect((await client.patch(`/api/programs/${id}`, { iconColor: "#3d8bff" })).status).toBe(204);
+    expect((await find(id)).iconColor).toBe("#3d8bff");
+
+    expect((await client.patch(`/api/programs/${id}`, { iconColor: "rebeccapurple" })).status).toBe(
+      400,
+    );
+  });
+
+  it("defaults the icon and its colour to null when a create does not send them", async () => {
     const id = await create("plain");
     expect((await find(id)).icon).toBeNull();
+    expect((await find(id)).iconColor).toBeNull();
   });
 
   it("renames a program", async () => {

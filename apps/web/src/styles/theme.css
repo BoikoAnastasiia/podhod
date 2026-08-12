@@ -167,6 +167,43 @@
 }
 
 /*
+ * The program-icon palette. Each preset is a *pair* — the light value here,
+ * the dark one in the @layer base blocks below — because a single value cannot
+ * serve both canvases. The accent lime is the clearest case: #b8ff2c measures
+ * ~16:1 on the near-black card and ~1.14:1 on the white one, so the light theme
+ * gets a lime of the same hue family that survives a white background. Ink is
+ * aliased through --color-ink, which already flips, so that every preset
+ * resolves the same way.
+ *
+ * These are saturated on purpose — the owner's call (2026-08-12) on a first
+ * pass that came out muddy: the darkened light-theme values needed for text
+ * contrast read as olive and rust rather than as lime and orange. An icon is a
+ * solid silhouette with its program's name always beside it, not text and not
+ * the only carrier of any meaning, so it does not owe the 4.5:1 that text does.
+ * Measured against the white card these land at 2.1:1 (lime), 2.8 (orange),
+ * 3.7 (blue) and 2.5 (green) — enough for a 24-28px glyph to read as a shape,
+ * chosen brightness-first from there. Do not push lime brighter: #a3e635 falls
+ * to 1.5:1 and the glyph starts dissolving into the card.
+ *
+ * `static` is load-bearing, not decoration. These are read only through
+ * `var(--color-icon-*)` in an inline style — no utility class ever mentions
+ * them — and a plain @theme emits only the variables some generated utility
+ * uses. Without `static` Tailwind drops all four from the built CSS and every
+ * preset silently falls back to unstyled black. (Verified in the browser, not
+ * assumed: --color-icon-lime came back as the empty string.)
+ *
+ * A user's custom colour has no token and is stored as a literal hex — it is
+ * their choice to make, and it cannot follow the theme.
+ */
+@theme static {
+  --color-icon-ink: var(--color-ink);
+  --color-icon-lime: #8ac400;
+  --color-icon-orange: #f97316;
+  --color-icon-blue: #3b82f6;
+  --color-icon-green: #10b981;
+}
+
+/*
  * Tailwind v4 only turns @theme variables into utilities for a fixed set of
  * namespaces (--color-*, --font-*, --spacing-*, --radius-*, --shadow-*,
  * --ease-*, --animate-*, and a few others) — there is no --duration-*
@@ -307,6 +344,14 @@
        * and the red both already read clearly against a near-black surface,
        * and text on lime must stay near-black in both themes.
        */
+
+      /* Brighter again on the dark card, where there is no contrast cost to
+         pay — lime returns to the brand value outright. --color-icon-ink is
+         not repeated: it already follows --color-ink. */
+      --color-icon-lime: #b8ff2c;
+      --color-icon-orange: #ffa05c;
+      --color-icon-blue: #7ab8ff;
+      --color-icon-green: #5cf09a;
     }
   }
   :root[data-theme="dark"] {
@@ -317,10 +362,74 @@
     --color-border: #2a2a2a;
     --color-chip-border: #2e2e2e;
     --color-chip-hover: #26331a;
+    --color-icon-lime: #b8ff2c;
+    --color-icon-orange: #ffa05c;
+    --color-icon-blue: #7ab8ff;
+    --color-icon-green: #5cf09a;
   }
+}
+
+/*
+ * A pointer on everything that does something when clicked.
+ *
+ * Tailwind 4's Preflight sets `button { cursor: default }` — it follows the UA
+ * default, where a button is not a link. That is defensible in the abstract and
+ * wrong here: measured across this app, every <button> reported `default` while
+ * every <a> reported `pointer`, so the avatar, the pills, the chips and the
+ * icon trigger all felt inert next to the nav links. This restores the pointer
+ * for the whole class of them rather than leaving each component to remember a
+ * `cursor-pointer` utility.
+ *
+ * The `:not(:disabled)` matters: a disabled control is precisely the one that
+ * must not promise a click. Disabled gets the arrow back rather than
+ * `not-allowed`, which reads as an error where nothing has gone wrong — the
+ * picker's already-added rows are disabled by design, not by failure.
+ *
+ * Text inputs are deliberately absent: their I-beam is correct and says
+ * "type here", which a pointer would contradict.
+ */
+@layer base {
+  button:not(:disabled),
+  summary,
+  select:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="range"]:not(:disabled),
+  input[type="color"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: default;
+  }
+}
+
+/*
+ * A dialog's scroll stays its own. Without this, reaching the bottom of the
+ * editor's content hands the rest of the wheel to the document underneath —
+ * "scroll chaining" — so a long picker list quietly scrolled the programs page
+ * behind it. `contain` keeps the gesture in the dialog and stops there.
+ */
+dialog {
+  overscroll-behavior: contain;
 }
 
 /* Set numerals globally: set rows must not shift as weights change. */
 html {
   font-variant-numeric: tabular-nums;
+  /*
+   * Reserve the scrollbar's column permanently. useScrollLock hides the
+   * document's overflow while a dialog is open, and without a reserved gutter
+   * the scrollbar's disappearance widens the viewport — the whole page, and the
+   * fixed header with it, jumps sideways at the moment the dialog opens. On
+   * platforms with overlay scrollbars (macOS by default) this reserves nothing
+   * and costs nothing, because there was never any width to lose.
+   */
+  scrollbar-gutter: stable;
 }

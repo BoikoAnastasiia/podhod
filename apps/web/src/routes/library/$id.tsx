@@ -108,7 +108,7 @@ function Detail() {
       <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:gap-12">
         <div className="flex flex-col gap-4 lg:w-2/5 lg:shrink-0">
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{data.name}</h1>
-          <AddToProgram exerciseId={data.id} />
+          <AddToProgram exerciseId={data.id} exerciseName={data.name} />
 
           <div className="flex flex-1 flex-col gap-6 rounded-card bg-surface p-6 shadow-card lg:p-8">
             <div className="flex flex-wrap gap-2">

@@ -1,8 +1,8 @@
-import { schemeSchema } from "@podhod/schema";
+import { PROGRAM_ICON_COLOR_PRESETS, PROGRAM_ICON_NAMES, schemeSchema } from "@podhod/schema";
 import { describe, expect, it } from "vitest";
 import dataset from "../../../../data/exercises.seed.json" with { type: "json" };
 import { dict } from "../i18n/dict.js";
-import { PROGRAM_ICONS, PROGRAM_TEMPLATES } from "./programTemplates.js";
+import { PROGRAM_TEMPLATES } from "./programTemplates.js";
 
 // Test-only import of the 1,324-row dataset — the template module itself must
 // stay tiny, which is why templates carry ids, not exercise objects.
@@ -32,9 +32,10 @@ describe("PROGRAM_TEMPLATES", () => {
     }
   });
 
-  it("uses icons from the preset set, so the picker can always mark the current one", () => {
+  it("uses icons and colours the picker offers, so it can mark the current one", () => {
     for (const template of PROGRAM_TEMPLATES) {
-      expect(PROGRAM_ICONS).toContain(template.icon);
+      expect(PROGRAM_ICON_NAMES).toContain(template.icon);
+      expect(PROGRAM_ICON_COLOR_PRESETS).toContain(template.iconColor);
     }
   });
 

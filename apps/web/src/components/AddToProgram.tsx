@@ -5,7 +5,10 @@ import { useI18n } from "../i18n/useI18n.js";
 import { authClient } from "../lib/authClient.js";
 import { addExercise, createProgram, fetchPrograms } from "../lib/api.js";
 import { programKeys } from "../lib/programKeys.js";
+import { useScrollLock } from "../lib/useScrollLock.js";
+import { ProgramIcon } from "./ProgramIcon.js";
 import { SCHEME_DEFAULTS } from "./SchemeEditor.js";
+import { useToast } from "./Toast.js";
 
 const pill =
   "flex min-h-tap-min items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-muted transition-colors duration-150 hover:bg-chip-hover hover:text-ink";
@@ -18,14 +21,22 @@ const pill =
  * visitors are sent through sign-in with a redirect back here, the same
  * loop requireSession uses.
  */
-export function AddToProgram({ exerciseId }: { exerciseId: string }) {
+export function AddToProgram({
+  exerciseId,
+  exerciseName,
+}: {
+  exerciseId: string;
+  exerciseName: string;
+}) {
   const { t } = useI18n();
+  const toast = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
   const [open, setOpen] = useState(false);
   const [addedTo, setAddedTo] = useState<{ id: string; name: string } | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  useScrollLock(open);
 
   useEffect(() => {
     if (open) dialogRef.current?.showModal();
@@ -38,6 +49,19 @@ export function AddToProgram({ exerciseId }: { exerciseId: string }) {
   });
   const live = (programs.data?.programs ?? []).filter((p) => p.archivedAt === null);
 
+  /*
+   * The toast fires here as well as in the editor's picker: this dialog also
+   * confirms inline, but the toast is what the user sees if the dialog is
+   * already closing or scrolled past, and one confirmation pattern across both
+   * entrances beats two.
+   */
+  const announce = (programName: string) =>
+    toast(
+      t("toast.exerciseAdded")
+        .replace("{exercise}", exerciseName)
+        .replace("{program}", programName),
+    );
+
   const add = useMutation({
     mutationFn: async (program: { id: string; name: string }) => {
       await addExercise(program.id, { exerciseId, scheme: SCHEME_DEFAULTS.fixed });
@@ -45,6 +69,7 @@ export function AddToProgram({ exerciseId }: { exerciseId: string }) {
     },
     onSuccess: async (program) => {
       setAddedTo(program);
+      announce(program.name);
       await queryClient.invalidateQueries({ queryKey: programKeys.all });
     },
   });
@@ -59,6 +84,7 @@ export function AddToProgram({ exerciseId }: { exerciseId: string }) {
     },
     onSuccess: async (program) => {
       setAddedTo(program);
+      announce(program.name);
       await queryClient.invalidateQueries({ queryKey: programKeys.all });
     },
   });
@@ -138,7 +164,14 @@ export function AddToProgram({ exerciseId }: { exerciseId: string }) {
                   onClick={() => add.mutate({ id: program.id, name: program.name })}
                   className="flex min-h-row-min w-full flex-wrap items-center gap-2 rounded-row border border-border bg-surface px-3 text-left text-sm text-ink transition-colors duration-150 hover:bg-chip-hover disabled:opacity-50"
                 >
-                  {program.icon && <span aria-hidden="true">{program.icon}</span>}
+                  {program.icon && (
+                    <ProgramIcon
+                      name={program.icon}
+                      color={program.iconColor}
+                      className="size-5"
+                      testId={null}
+                    />
+                  )}
                   <span className="font-medium">{program.name}</span>
                 </button>
               ))}

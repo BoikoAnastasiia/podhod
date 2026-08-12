@@ -73,6 +73,7 @@ export const programRoutes = new Hono<AuthedEnv>()
         name: programs.name,
         notes: programs.notes,
         icon: programs.icon,
+        iconColor: programs.iconColor,
         isActive: programs.isActive,
         archivedAt: programs.archivedAt,
         createdAt: programs.createdAt,
@@ -103,6 +104,7 @@ export const programRoutes = new Hono<AuthedEnv>()
       name: parsed.data.name,
       notes: parsed.data.notes ?? null,
       icon: parsed.data.icon ?? null,
+      iconColor: parsed.data.iconColor ?? null,
       isActive: 0,
       createdAt: now(),
     });
@@ -119,11 +121,12 @@ export const programRoutes = new Hono<AuthedEnv>()
     const existing = await findOwnedProgram(db, userId, c.req.param("id"));
     if (!existing) return c.json(fail("not_found", "no such program"), 404);
 
-    const { name, notes, icon, isActive, archived } = parsed.data;
+    const { name, notes, icon, iconColor, isActive, archived } = parsed.data;
     const patch: Record<string, unknown> = {};
     if (name !== undefined) patch.name = name;
     if (notes !== undefined) patch.notes = notes ?? null;
     if (icon !== undefined) patch.icon = icon ?? null;
+    if (iconColor !== undefined) patch.iconColor = iconColor ?? null;
 
     /**
      * Archiving always clears `isActive`. An archived program still flagged
@@ -218,6 +221,7 @@ export const programRoutes = new Hono<AuthedEnv>()
         name: program.name,
         notes: program.notes,
         icon: program.icon,
+        iconColor: program.iconColor,
         isActive: program.isActive === 1,
         archivedAt: program.archivedAt,
         createdAt: program.createdAt,
@@ -261,6 +265,28 @@ export const programRoutes = new Hono<AuthedEnv>()
     // Without this the foreign key would reject the insert with a 500. A
     // request naming an exercise that does not exist is the caller's mistake.
     if (!library) return c.json(fail("bad_request", "no such exercise"), 400);
+
+    /*
+     * One exercise, once per program. Without this the picker's own guard is
+     * the only thing standing between a double-tap and two identical rows —
+     * and that is exactly how it went wrong in practice: nothing confirmed the
+     * first tap, so the exercise got tapped again.
+     *
+     * Enforced here rather than by a unique index, because programs written
+     * before this rule may already hold duplicates and a migration adding the
+     * index would fail on them.
+     */
+    const [duplicate] = await db
+      .select({ id: programExercises.id })
+      .from(programExercises)
+      .where(
+        and(
+          eq(programExercises.programId, program.id),
+          eq(programExercises.exerciseId, parsed.data.exerciseId),
+        ),
+      )
+      .limit(1);
+    if (duplicate) return c.json(fail("conflict", "already in this program"), 409);
 
     const [existing] = await db
       .select({ n: count() })

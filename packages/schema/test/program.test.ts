@@ -132,6 +132,7 @@ describe("programDetailSchema", () => {
       name: "monday",
       notes: null,
       icon: null,
+      iconColor: null,
       isActive: true,
       archivedAt: null,
       createdAt: 1,

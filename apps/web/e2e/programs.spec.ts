@@ -12,6 +12,7 @@ function freshEmail(tag: string): string {
 
 const PASSWORD = "correct-horse-e2e-1";
 
+
 async function signUp(page: Page, tag: string): Promise<void> {
   await page.goto("/sign-up");
   await page.getByLabel("Email").fill(freshEmail(tag));
@@ -22,6 +23,29 @@ async function signUp(page: Page, tag: string): Promise<void> {
   // the session query was still pending, racing the next navigation.)
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("sign-in-link")).toHaveCount(0);
+}
+
+/**
+ * Adds one exercise through the picker, waiting for the two things that make
+ * the click mean what it says.
+ *
+ * The picker keeps the previous query's results on screen while the next set
+ * loads — deliberately, so the list does not blink on every keystroke — which
+ * means "fill, then click the first result" can click the *last* search's
+ * answer. That exercise is usually one already added, so its row is disabled
+ * and the click adds nothing. It cost a CI failure that never reproduced
+ * locally, where the refetch always wins the race; delaying the search request
+ * reproduces it on demand.
+ *
+ * So: wait for the first result to be the exercise that was searched for, then
+ * wait for the row to actually land before moving on.
+ */
+async function addExercise(page: Page, query: string, expectedRows: number): Promise<void> {
+  await page.getByTestId("picker-search").fill(query);
+  const first = page.getByTestId("picker-result").first();
+  await expect(first.getByTestId("picker-name")).toContainText(query);
+  await first.click();
+  await expect(page.getByTestId("day-exercise")).toHaveCount(expectedRows);
 }
 
 test("/programs redirects to sign-in when signed out", async ({ page }) => {
@@ -58,21 +82,15 @@ test("builds a workout from nothing", async ({ page }) => {
 
   // Three exercises through one picker session — instant adds, panel open.
   await page.getByTestId("add-exercise").click();
-  await page.getByTestId("picker-search").fill("push");
-  await page.getByTestId("picker-result").first().click();
-  await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+  await addExercise(page, "push", 1);
   // The instant add is the trainer's default: 4 sets, weight in front of you.
   await expect(page.getByTestId("entry-weight").first()).toHaveValue("20");
 
-  await page.getByTestId("picker-search").fill("curl");
-  await page.getByTestId("picker-result").first().click();
-  await expect(page.getByTestId("day-exercise")).toHaveCount(2);
+  await addExercise(page, "curl", 2);
 
   // The body-part chips filter the picker the same way the library filters.
   await page.getByRole("button", { name: "upper legs", exact: true }).click();
-  await page.getByTestId("picker-search").fill("squat");
-  await page.getByTestId("picker-result").first().click();
-  await expect(page.getByTestId("day-exercise")).toHaveCount(3);
+  await addExercise(page, "squat", 3);
   await page.getByTestId("picker-close").click();
 
   // The weight commits from the row — no form, no dialog.
@@ -128,7 +146,11 @@ test("adding an exercise confirms it by name, below the header", async ({ page }
   await page.getByTestId("add-exercise").click();
   await page.getByTestId("picker-search").fill("air bike");
 
+  // The picker shows the unfiltered list until the search resolves, so waiting
+  // for the row to be the searched-for one is what stops this clicking whatever
+  // happened to be first before typing. See addExercise above.
   const picked = page.getByTestId("picker-result").first();
+  await expect(picked.getByTestId("picker-name")).toContainText("air bike");
   const name = await picked.getByTestId("picker-name").textContent();
   await picked.click();
 
@@ -282,6 +304,7 @@ test("the picker refuses a second tap, but the row can be duplicated on purpose"
   await page.getByTestId("picker-search").fill("barbell full squat");
 
   const picked = page.getByTestId("picker-result").first();
+  await expect(picked.getByTestId("picker-name")).toContainText("barbell full squat");
   await picked.click();
   await expect(page.getByTestId("day-exercise")).toHaveCount(1);
 
@@ -326,9 +349,7 @@ test("an entry's preview opens the exercise and comes back to the program", asyn
   await page.getByTestId("create-program").click();
   await expect(page.getByTestId("program-dialog")).toBeVisible();
   await page.getByTestId("add-exercise").click();
-  await page.getByTestId("picker-search").fill("air bike");
-  await page.getByTestId("picker-result").first().click();
-  await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+  await addExercise(page, "air bike", 1);
   await page.getByTestId("picker-close").click();
 
   await page.getByTestId("entry-preview").click();
@@ -363,15 +384,9 @@ test("a prescription is written in the unit the exercise actually takes", async 
   await expect(page.getByTestId("program-dialog")).toBeVisible();
   await page.getByTestId("add-exercise").click();
 
-  const addFirstMatch = async (query: string) => {
-    await page.getByTestId("picker-search").fill(query);
-    await page.getByTestId("picker-result").first().click();
-  };
-
-  await addFirstMatch("walk elliptical");
-  await addFirstMatch("clock push-up");
-  await addFirstMatch("barbell full squat");
-  await expect(page.getByTestId("day-exercise")).toHaveCount(3);
+  await addExercise(page, "walk elliptical", 1);
+  await addExercise(page, "clock push-up", 2);
+  await addExercise(page, "barbell full squat", 3);
   await page.getByTestId("picker-close").click();
 
   const rows = page.getByTestId("day-exercise");
@@ -549,11 +564,10 @@ test("the editor holds its size while the list rearranges", async ({ page }) => 
   await page.getByTestId("create-program").click();
   await expect(page.getByTestId("program-dialog")).toBeVisible();
   await page.getByTestId("add-exercise").click();
-  for (const query of ["barbell bench press", "barbell full squat", "barbell deadlift"]) {
-    await page.getByTestId("picker-search").fill(query);
-    await page.getByTestId("picker-result").first().click();
+  const queries = ["barbell bench press", "barbell full squat", "barbell deadlift"];
+  for (const [index, query] of queries.entries()) {
+    await addExercise(page, query, index + 1);
   }
-  await expect(page.getByTestId("day-exercise")).toHaveCount(3);
   await page.getByTestId("picker-close").click();
 
   const collapse = await page.evaluate(async () => {
@@ -599,9 +613,7 @@ test.describe("with reduced motion", () => {
     await page.getByTestId("create-program").click();
     await expect(page.getByTestId("program-dialog")).toBeVisible();
     await page.getByTestId("add-exercise").click();
-    await page.getByTestId("picker-search").fill("barbell bench press");
-    await page.getByTestId("picker-result").first().click();
-    await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+    await addExercise(page, "barbell bench press", 1);
 
     const widths = await page.evaluate(async () => {
       const seen: number[] = [];
@@ -642,6 +654,21 @@ test.describe("on a phone viewport", () => {
     const nav = page.getByRole("navigation", { name: "Primary" });
     const header = page.getByRole("banner");
     await expect(nav).toBeVisible();
+
+    /*
+     * The header only compacts on a page long enough to scroll, and the library
+     * is not that until its grid has rendered. Wheeling before then scrolls
+     * nothing, the header stays whole, and the test fails claiming the collapse
+     * is broken — which is a lie about the app and a fact about the fixture.
+     * Reproduced by delaying the exercise search, the same way a slow runner
+     * would.
+     */
+    await expect(page.getByTestId("exercise-card").first()).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight),
+      )
+      .toBe(true);
 
     /*
      * The property that matters is that the page comes to rest: collapsing the

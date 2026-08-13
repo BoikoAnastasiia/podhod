@@ -263,12 +263,17 @@ export function ProgramEditor({ programId }: { programId: string }) {
       className="rounded-row border border-border px-3 py-2 text-sm text-ink"
     >
       {/*
-       * The actions never wrap; the name does. With everything wrapping, one
-       * long exercise name pushed the whole control cluster onto a second line
-       * and that row alone grew to twice the height of its neighbours.
+       * Stacked on a phone, side by side from sm.
+       *
+       * Pinning the actions so the name wraps around them is right on a wide
+       * row and wrong on a narrow one: five 44px controls and their gaps claim
+       * about 250px, which on a 390px screen leaves the name ~120px — enough to
+       * break "barbell front raise and pullover" into one word per line, with
+       * the buttons sitting over the top of it. Below sm the name gets the full
+       * width and the controls take their own line underneath.
        */}
-      <div className="flex min-h-row-min items-center justify-between gap-2">
-        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      <div className="flex min-h-row-min flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <span className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-1">
           {/*
            * The exercise itself, as a way in rather than only a picture: a
            * program row names a movement, and "what does that actually look
@@ -312,7 +317,7 @@ export function ProgramEditor({ programId }: { programId: string }) {
             <SchemeSummary scheme={entry.scheme} />
           )}
         </span>
-        <span className="flex shrink-0 items-center gap-2">
+        <span className="flex shrink-0 flex-wrap items-center gap-2">
           <ReorderButtons
             index={index}
             count={entries.length}

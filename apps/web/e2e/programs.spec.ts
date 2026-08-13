@@ -689,6 +689,54 @@ test.describe("on a phone viewport", () => {
     await expect(nav).toBeVisible();
   });
 
+  /**
+   * A row's controls must not sit on top of its name.
+   *
+   * Pinning the actions so the name wraps around them is right on a wide row
+   * and wrong on a narrow one: five 44px controls and their gaps claim about
+   * 250px of a 390px screen, which left the name ~120px — enough to break
+   * "barbell front raise and pullover" into one word per line with the buttons
+   * over the top of it. Below sm the row stacks instead.
+   *
+   * The exercise chosen here is the longest name in the seeded library, so this
+   * is the worst case rather than a comfortable one.
+   */
+  test("an exercise row keeps its name clear of its controls", async ({ page }) => {
+    await signUp(page, "programs-rowlayout");
+    await page.goto("/programs");
+
+    await page.getByTestId("create-program").click();
+    await page.getByTestId("add-exercise").click();
+    await page.getByTestId("picker-search").fill("assisted hanging knee raise with throw down");
+    await page.getByTestId("picker-result").first().click();
+    await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+    await page.getByTestId("picker-close").click();
+
+    const layout = await page.evaluate(() => {
+      const row = document.querySelector('[data-testid="day-exercise"]');
+      const name = row?.querySelector('[data-testid="entry-name"]');
+      const actions = row?.querySelector('[data-testid="move-up"]')?.closest("span")?.parentElement;
+      if (!row || !name || !actions) return null;
+
+      const n = name.getBoundingClientRect();
+      const a = actions.getBoundingClientRect();
+      return {
+        overlaps: n.right > a.left && a.top < n.bottom && n.top < a.bottom,
+        lines: Math.round(n.height / parseFloat(getComputedStyle(name).lineHeight)),
+        controls: actions.querySelectorAll("button").length,
+        controlsShareALine: new Set(
+          [...actions.querySelectorAll("button")].map((b) => Math.round(b.getBoundingClientRect().top)),
+        ).size,
+      };
+    });
+
+    expect(layout!.overlaps).toBe(false);
+    // Two lines would be a wrap; five words stacked was the bug.
+    expect(layout!.lines).toBeLessThanOrEqual(2);
+    expect(layout!.controls).toBe(5);
+    expect(layout!.controlsShareALine).toBe(1);
+  });
+
   test("creating a program opens the full page, not a dialog", async ({ page }) => {
     await signUp(page, "programs-mobile");
     await page.goto("/programs");

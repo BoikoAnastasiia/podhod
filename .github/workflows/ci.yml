@@ -48,25 +48,16 @@ jobs:
           GOOGLE_CLIENT_SECRET=ci-placeholder-google-secret
           VARS
 
-      # Playwright's own webServer only starts Vite, which proxies /api to
-      # :8787. The Worker has to already be listening there, so start it
-      # here in the background and wait for it to bind instead of guessing
-      # with a fixed sleep. The process stays alive into later steps because
-      # the job's shell tree isn't torn down between steps.
-      - run: pnpm --filter @podhod/api run dev &
-
-      - name: Wait for the Worker to bind
-        run: |
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:8787/api/exercises >/dev/null; then
-              echo "Worker is up"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Worker never came up on :8787" >&2
-          exit 1
-
+      # The Worker is not started here any more. This step's own comment used
+      # to claim "Playwright's own webServer only starts Vite" — it did not; it
+      # ran `pnpm dev`, which starts both. So CI ran two Workers: the one begun
+      # here on :8787, and a second one Playwright spawned, which does not fail
+      # on a taken port but quietly binds another (observed: 8789). Both used
+      # the same local D1 SQLite file, and two processes writing one database is
+      # what made sign-up intermittently blow a five-second timeout.
+      #
+      # playwright.config.ts now declares both servers, so it starts exactly one
+      # of each and waits for both to answer.
       - run: pnpm --filter @podhod/web exec playwright test
         env:
           CI: "true"

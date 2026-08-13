@@ -1,5 +1,39 @@
 import { expect, test } from "@playwright/test";
 
+/**
+ * The library reserves the space its results will occupy while they load.
+ *
+ * Without it the page is a search box, some chips and one line of text — a few
+ * hundred pixels — so the footer sits mid-screen and is then shoved below the
+ * fold when the grid lands. Measured on a throttled connection, that single
+ * navigation scored 0.203 cumulative layout shift, effectively all of it the
+ * footer moving twice; with the placeholders it is 0.000.
+ *
+ * The request is delayed here because on a fast connection the loading state is
+ * over before anything can observe it.
+ */
+test("the library holds the space for its results while they load", async ({ page }) => {
+  await page.route("**/api/exercises**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await route.continue();
+  });
+  await page.goto("/library");
+
+  const skeleton = page.getByTestId("library-skeleton");
+  await expect(skeleton).toBeVisible();
+  // Enough placeholders to fill a viewport, in the same grid as the results.
+  expect(await skeleton.locator("li").count()).toBeGreaterThanOrEqual(8);
+
+  // The footer must already be where the real content will leave it: below the
+  // fold, not floating in the middle of the page.
+  const footerTop = (await page.getByRole("contentinfo").boundingBox())?.y ?? 0;
+  expect(footerTop).toBeGreaterThan(page.viewportSize()!.height * 0.7);
+
+  // And it gives way to the real thing.
+  await expect(page.getByTestId("exercise-card").first()).toBeVisible();
+  await expect(skeleton).toHaveCount(0);
+});
+
 test("browses, searches and filters the library", async ({ page }) => {
   await page.goto("/library");
   await expect(page.getByTestId("exercise-card").first()).toBeVisible();

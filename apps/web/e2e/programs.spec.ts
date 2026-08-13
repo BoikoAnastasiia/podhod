@@ -645,24 +645,26 @@ test.describe("on a phone viewport", () => {
    * settle-and-recheck at the end: a single assertion right after the scroll
    * passes even while the header is oscillating.
    */
-  test("the header sheds its nav row scrolling down, brings it back scrolling up", async ({
-    page,
-  }) => {
-    await signUp(page, "programs-compact");
+  /**
+   * The header is pinned and never changes: both rows stay put through any
+   * amount of scrolling (the owner's call, 2026-08-13 — it used to shed the nav
+   * row on a phone, and half a header read worse than the space it saved).
+   *
+   * Worth asserting rather than assuming, because a header that changes height
+   * while in flow is what started a frame-rate oscillation once before: the
+   * collapse removed 48px above the viewport, scroll anchoring gave it back,
+   * and the position alternated forever. A constant height cannot do that, and
+   * this is what says so.
+   */
+  test("the header keeps both rows through any amount of scrolling", async ({ page }) => {
+    await signUp(page, "programs-header");
     await page.goto("/library");
 
     const nav = page.getByRole("navigation", { name: "Primary" });
     const header = page.getByRole("banner");
     await expect(nav).toBeVisible();
 
-    /*
-     * The header only compacts on a page long enough to scroll, and the library
-     * is not that until its grid has rendered. Wheeling before then scrolls
-     * nothing, the header stays whole, and the test fails claiming the collapse
-     * is broken — which is a lie about the app and a fact about the fixture.
-     * Reproduced by delaying the exercise search, the same way a slow runner
-     * would.
-     */
+    // The page has to be long enough to scroll for this to mean anything.
     await expect(page.getByTestId("exercise-card").first()).toBeVisible();
     await expect
       .poll(() =>
@@ -670,70 +672,19 @@ test.describe("on a phone viewport", () => {
       )
       .toBe(true);
 
-    /*
-     * The property that matters is that the page comes to rest: collapsing the
-     * nav row must not move the document underneath it.
-     *
-     * It is asserted as "does scrolling stop" rather than "is the header in
-     * state X" because of what the regression actually looked like. While the
-     * header was in flow, collapsing it removed 48px from above the viewport,
-     * scroll anchoring compensated by the same 48px, that read as scrolling up,
-     * the row came back — and the position alternated between 900 and 852
-     * forever. Reproduced here before this was written, to be sure the check
-     * still catches it.
-     *
-     * Asserting the header's own class instead is what made the first version
-     * of this test fail on CI: it re-checked a timing-sensitive state the run
-     * had already moved past, and waiting for the page to settle first merely
-     * hid the oscillation behind the wait.
-     */
-    const restsWithin = (frames: number) =>
-      page.evaluate(async (limit) => {
-        const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-        let previous = Number.NaN;
-        let still = 0;
-        for (let elapsed = 0; elapsed < limit; elapsed++) {
-          await frame();
-          if (window.scrollY === previous) {
-            still += 1;
-            if (still >= 8) return true;
-          } else {
-            still = 0;
-            previous = window.scrollY;
-          }
-        }
-        return false;
-      }, frames);
-
+    const before = await header.boundingBox();
     await page.mouse.wheel(0, 900);
-    expect(await restsWithin(120)).toBe(true);
-    await expect(nav).toBeHidden();
-    // Still pinned, just shorter.
+    await page.waitForTimeout(400);
+    await expect(nav).toBeVisible();
+    expect((await header.boundingBox())?.height).toBe(before?.height);
     expect((await header.boundingBox())?.y).toBe(0);
 
     await page.mouse.wheel(0, -300);
-    expect(await restsWithin(120)).toBe(true);
+    await page.waitForTimeout(400);
     await expect(nav).toBeVisible();
+    expect((await header.boundingBox())?.height).toBe(before?.height);
   });
 
-  /**
-   * A row's controls must not sit on top of its name.
-   *
-   * Pinning the actions so the name wraps around them is right on a wide row
-   * and wrong on a narrow one: five 44px controls and their gaps claim about
-   * 250px of a 390px screen, which left the name ~120px — enough to break
-   * "barbell front raise and pullover" into one word per line with the buttons
-   * over the top of it. Below sm the row stacks instead.
-   *
-   * The exercise chosen here is the longest name in the seeded library, so this
-   * is the worst case rather than a comfortable one.
-   */
-  /**
-   * A phone opening a program lands on this page, not the desktop dialog, so
-   * the only way back to the list is on the page itself. It was there as bare
-   * 14px text that read as a heading; this asserts it is a real control that
-   * goes somewhere.
-   */
   test("the program page has a back control to the programs list", async ({ page }) => {
     await signUp(page, "programs-back");
     await page.goto("/programs");

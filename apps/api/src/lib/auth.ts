@@ -27,6 +27,53 @@ type Env = {
  * production — is always the correct baseURL, and deriving it removes one
  * more value that could drift between environments.
  */
+/**
+ * Private-network address ranges, per RFC 1918 plus mDNS `.local` names — the
+ * only hosts a phone on the same Wi-Fi can be reached at.
+ */
+const PRIVATE_HOST =
+  /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1\]?$|localhost$)|\.local$/;
+
+/**
+ * Origins Better Auth will accept a request from.
+ *
+ * Production gets exactly one entry and no request-dependent logic: the app is
+ * same-origin by design, so the browser's Origin already equals the Worker's
+ * own URL and nothing extra needs trusting. `http://localhost:5173` is there
+ * for the dev proxy, as the comment at the call site explains.
+ *
+ * The extra clause exists so the app can be opened from a phone on the same
+ * network during development, where Vite serves on a LAN address and Better
+ * Auth would otherwise reject every request with INVALID_ORIGIN — correctly,
+ * since that origin is neither the Worker's nor localhost.
+ *
+ * Two conditions gate it, and both matter. The *Worker itself* must be running
+ * on localhost, which is only true under `wrangler dev` — in production the
+ * request URL is the custom domain and this returns the fixed list untouched,
+ * so none of it can be reached from the deployed app. And the origin being
+ * trusted must be a private-network address, so this can never widen to a
+ * public site. It is a development affordance that is structurally unable to
+ * apply in production, rather than a relaxed rule that happens not to fire.
+ */
+function devOrigins(requestUrl: string, request: Request | undefined): string[] {
+  const fixed = ["http://localhost:5173"];
+
+  const worker = new URL(requestUrl).hostname;
+  const workerIsLocal = worker === "localhost" || worker === "127.0.0.1";
+  if (!workerIsLocal) return fixed;
+
+  // Better Auth calls this without a request for some internal resolutions.
+  const origin = request?.headers.get("origin");
+  if (!origin) return fixed;
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== "http:" || !PRIVATE_HOST.test(hostname)) return fixed;
+    return [...fixed, origin];
+  } catch {
+    return fixed;
+  }
+}
+
 export function createAuth(env: Env["Bindings"], requestUrl: string) {
   const db = drizzle(env.DB, { schema });
 
@@ -45,7 +92,7 @@ export function createAuth(env: Env["Bindings"], requestUrl: string) {
     // this origin costs nothing in production: nobody's browser is ever
     // actually at localhost:5173 unless they're already running this repo
     // locally, and Origin can't be forged by a page hosted elsewhere.
-    trustedOrigins: ["http://localhost:5173"],
+    trustedOrigins: (request) => devOrigins(requestUrl, request),
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
     emailAndPassword: {
       enabled: true,

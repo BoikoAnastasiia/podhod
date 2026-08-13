@@ -40,6 +40,42 @@ async function signUp(email: string, password: string, name: string): Promise<Re
   });
 }
 
+/**
+ * The origin allowlist is a CSRF control, so the rule that widens it for phone
+ * testing has to be provably unable to fire in production.
+ *
+ * These requests arrive at `https://example.com`, which is what a deployed
+ * Worker looks like — not localhost. A LAN origin must be refused there even
+ * though the very same origin is accepted when the Worker itself is running
+ * locally, because that is the condition the affordance is gated on.
+ */
+describe("origin allowlist", () => {
+  const attempt = (origin: string) =>
+    SELF.fetch(`${ORIGIN}/api/auth/sign-in/email`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin },
+      body: JSON.stringify({ email: "nobody@example.com", password: "correct-horse-1" }),
+    });
+
+  it("refuses a private-network origin when the Worker is not local", async () => {
+    for (const origin of [
+      "http://192.168.2.5:5173",
+      "http://10.0.0.9:5173",
+      "http://172.16.4.4:5173",
+      "http://podhod.local:5173",
+    ]) {
+      const res = await attempt(origin);
+      expect(res.status, origin).toBe(403);
+      expect((await res.json<{ code: string }>()).code, origin).toBe("INVALID_ORIGIN");
+    }
+  });
+
+  it("refuses a public origin outright", async () => {
+    const res = await attempt("https://evil.example.com");
+    expect(res.status).toBe(403);
+  });
+});
+
 describe("auth", () => {
   it("signs up, and the session persists across requests via the returned cookie", async () => {
     const res = await signUp("alice@example.com", "correct-horse-1", "Alice");

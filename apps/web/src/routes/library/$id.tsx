@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { useRef } from "react";
 import { AddToProgram } from "../../components/AddToProgram.js";
+import { ChevronLeftIcon } from "../../components/icons.js";
 import { useI18n } from "../../i18n/useI18n.js";
 import { fetchExercise } from "../../lib/api.js";
 import { takeThumbState } from "../../lib/flipStore.js";
@@ -101,15 +102,7 @@ function Detail() {
       onClick={backToProgram}
       className="flex min-h-tap-min w-max items-center gap-2 text-sm text-muted underline-offset-4 hover:text-ink hover:underline"
     >
-      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4">
-        <path
-          d="M15 5 8 12l7 7"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <ChevronLeftIcon />
       {t("library.backToProgram")}
     </button>
   ) : null;

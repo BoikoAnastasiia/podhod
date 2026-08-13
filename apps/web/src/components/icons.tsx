@@ -53,6 +53,21 @@ export function XIcon() {
   );
 }
 
+/** Back: the way out of a detail page to the list it came from. */
+export function ChevronLeftIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4">
+      <path
+        d="M15 5 8 12l7 7"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Confirmation: the active program's badge, the picker's "Added" marker. */
 export function CheckIcon() {
   return (

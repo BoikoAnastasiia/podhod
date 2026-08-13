@@ -728,6 +728,28 @@ test.describe("on a phone viewport", () => {
    * The exercise chosen here is the longest name in the seeded library, so this
    * is the worst case rather than a comfortable one.
    */
+  /**
+   * A phone opening a program lands on this page, not the desktop dialog, so
+   * the only way back to the list is on the page itself. It was there as bare
+   * 14px text that read as a heading; this asserts it is a real control that
+   * goes somewhere.
+   */
+  test("the program page has a back control to the programs list", async ({ page }) => {
+    await signUp(page, "programs-back");
+    await page.goto("/programs");
+    await page.getByTestId("create-program").click();
+    await expect(page).toHaveURL(/\/programs\/[^/]+$/);
+
+    const back = page.getByTestId("back-to-programs");
+    await expect(back).toBeVisible();
+    // The tap target the rest of the app holds itself to.
+    expect((await back.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+
+    await back.click();
+    await expect(page).toHaveURL(/\/programs$/);
+    await expect(page.getByTestId("program-card").first()).toBeVisible();
+  });
+
   test("an exercise row keeps its name clear of its controls", async ({ page }) => {
     await signUp(page, "programs-rowlayout");
     await page.goto("/programs");

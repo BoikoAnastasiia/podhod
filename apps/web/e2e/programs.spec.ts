@@ -518,6 +518,108 @@ test("the header stays pinned to the top of the page while the page scrolls", as
     .toBe(before?.y);
 });
 
+/**
+ * The choreography is emphasis, never the thing conveying state — so someone who
+ * has asked their system for stillness gets the app without any of it, and every
+ * outcome unchanged.
+ *
+ * Asserted through the thumbnail's size because that is what the flight
+ * animates: it leaves the picker card at 96px and lands in the row at 56px, so
+ * any frame wider than the row is the animation running. Under reduced motion
+ * there must be no such frame.
+ */
+/**
+ * The editor must not change size while its list rearranges.
+ *
+ * This is a regression, and it was caught on a screen recording rather than by
+ * anything here: the choreography used Flip's `absolute` option, which lifts
+ * every row out of flow for the duration, so the list collapsed to 0px, the
+ * dialog shrank to fit its suddenly-empty content, and the whole editor imploded
+ * and sprang back on every reorder and delete. Measured at the time: list
+ * 1784px → 0px, dialog 860px → 194px.
+ *
+ * Nothing else here would have noticed. Every assertion about rows, counts and
+ * order passed throughout, because the end state was always correct — only the
+ * half-second in between was wrong.
+ */
+test("the editor holds its size while the list rearranges", async ({ page }) => {
+  await signUp(page, "programs-nocollapse");
+  await page.goto("/programs");
+
+  await page.getByTestId("create-program").click();
+  await expect(page.getByTestId("program-dialog")).toBeVisible();
+  await page.getByTestId("add-exercise").click();
+  for (const query of ["barbell bench press", "barbell full squat", "barbell deadlift"]) {
+    await page.getByTestId("picker-search").fill(query);
+    await page.getByTestId("picker-result").first().click();
+  }
+  await expect(page.getByTestId("day-exercise")).toHaveCount(3);
+  await page.getByTestId("picker-close").click();
+
+  const collapse = await page.evaluate(async () => {
+    const dialog = document.querySelector("dialog[open]");
+    const list = document.querySelector("[data-flip-row]")?.parentElement;
+    if (!dialog || !list) return null;
+
+    const before = {
+      dialog: dialog.getBoundingClientRect().height,
+      list: list.getBoundingClientRect().height,
+    };
+    const rows = document.querySelectorAll('[data-testid="day-exercise"]');
+    rows[0]?.querySelector<HTMLButtonElement>('[data-testid="move-down"]')?.click();
+
+    let smallestList = Infinity;
+    let smallestDialog = Infinity;
+    for (let frame = 0; frame < 50; frame++) {
+      smallestList = Math.min(smallestList, list.getBoundingClientRect().height);
+      smallestDialog = Math.min(smallestDialog, dialog.getBoundingClientRect().height);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    return { before, smallestList, smallestDialog };
+  });
+
+  // Half the starting height is a generous floor — the failure was total.
+  expect(collapse!.smallestList).toBeGreaterThan(collapse!.before.list * 0.5);
+  expect(collapse!.smallestDialog).toBeGreaterThan(collapse!.before.dialog * 0.5);
+});
+
+test.describe("with reduced motion", () => {
+  test("adds the exercise with no flight, and the row is simply there", async ({ page }) => {
+    await signUp(page, "programs-reduced");
+    /*
+     * Set explicitly rather than through `test.use({ reducedMotion })`, which
+     * this project's config does not deliver to the page — checked directly:
+     * under it the page still reported `(prefers-reduced-motion: reduce)` as
+     * false, so a test relying on it would assert nothing while looking
+     * thorough.
+     */
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/programs");
+
+    await page.getByTestId("create-program").click();
+    await expect(page.getByTestId("program-dialog")).toBeVisible();
+    await page.getByTestId("add-exercise").click();
+    await page.getByTestId("picker-search").fill("barbell bench press");
+    await page.getByTestId("picker-result").first().click();
+    await expect(page.getByTestId("day-exercise")).toHaveCount(1);
+
+    const widths = await page.evaluate(async () => {
+      const seen: number[] = [];
+      for (let frame = 0; frame < 40; frame++) {
+        const thumbs = document.querySelectorAll("[data-flip-row] [data-flip-thumb]");
+        const last = thumbs[thumbs.length - 1];
+        if (last) seen.push(Math.round(last.getBoundingClientRect().width));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      return [...new Set(seen)];
+    });
+    expect(widths).toEqual([56]);
+
+    // And the work itself still happened.
+    await expect(page.getByTestId("entry-name")).toHaveText("barbell bench press");
+  });
+});
+
 test.describe("on a phone viewport", () => {
   test.use({ viewport: { width: 375, height: 667 } });
 

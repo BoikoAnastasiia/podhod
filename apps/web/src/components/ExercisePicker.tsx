@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
 import { fetchExercises } from "../lib/api.js";
 import { BODY_PARTS } from "../lib/bodyParts.js";
+import { FLIP_THUMB } from "../lib/useEntryChoreography.js";
 import { FilterChips } from "./FilterChips.js";
 import { CheckIcon } from "./icons.js";
 
@@ -132,6 +133,7 @@ export function ExercisePicker({
               >
                 <span
                   data-testid="picker-thumb"
+                  {...{ [FLIP_THUMB]: exercise.id }}
                   className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-row bg-canvas sm:size-24"
                 >
                   <img
@@ -157,7 +159,7 @@ export function ExercisePicker({
                 {added && (
                   <span
                     data-testid="picker-added"
-                    className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink-on-accent sm:ml-0 sm:mt-auto"
+                    className="animate-badge-pop ml-auto flex shrink-0 items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-ink-on-accent sm:ml-0 sm:mt-auto"
                   >
                     <CheckIcon />
                     {t("picker.added")}

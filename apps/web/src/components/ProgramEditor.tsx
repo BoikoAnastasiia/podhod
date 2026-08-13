@@ -2,7 +2,7 @@ import { loadProfileOf, mediaUrl } from "@podhod/core";
 import type { ProgramExercise, SchemeInput } from "@podhod/schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useI18n } from "../i18n/useI18n.js";
 import {
   addExercise,
@@ -13,6 +13,13 @@ import {
   updateProgram,
 } from "../lib/api.js";
 import { programKeys } from "../lib/programKeys.js";
+import {
+  captureThumbFlight,
+  FLIP_ROW,
+  FLIP_THUMB,
+  useEntranceStagger,
+  useEntryChoreography,
+} from "../lib/useEntryChoreography.js";
 import { ExercisePicker } from "./ExercisePicker.js";
 import { CopyIcon, PencilIcon, XIcon } from "./icons.js";
 import { IconPicker } from "./IconPicker.js";
@@ -112,6 +119,16 @@ export function ProgramEditor({ programId }: { programId: string }) {
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
   /** The title mid-rename, or null when it is just a heading. */
   const [renaming, setRenaming] = useState<string | null>(null);
+
+  /*
+   * The list's geometry is replayed whenever its composition changes, which is
+   * exactly what the entry ids spell out: reorder permutes them, duplicate adds
+   * one, remove drops one. Keying on that rather than on a mutation's success
+   * means the animation runs when the *rendered* list changes, not when a
+   * request resolves — those are different moments, and only the second one is
+   * on screen.
+   */
+  const listRef = useRef<HTMLUListElement>(null);
 
   const program = useQuery({
     queryKey: programKeys.detail(programId, lang),
@@ -225,8 +242,11 @@ export function ProgramEditor({ programId }: { programId: string }) {
   });
 
   const entries = program.data?.exercises ?? [];
+  const captureLayout = useEntryChoreography(listRef, entries.map((e) => e.id).join());
+  useEntranceStagger(listRef, program.isSuccess);
 
   const moveExercise = (from: number, to: number) => {
+    captureLayout();
     // The API takes the complete ordered list and validates it against the
     // program's own entries before writing, so sending the whole thing is
     // both what it wants and what makes a replayed request harmless.
@@ -237,6 +257,7 @@ export function ProgramEditor({ programId }: { programId: string }) {
   const entryRow = (entry: ProgramExercise, index: number) => (
     <li
       key={entry.id}
+      {...{ [FLIP_ROW]: "" }}
       data-testid="day-exercise"
       data-entry-position={entry.position}
       className="rounded-row border border-border px-3 py-2 text-sm text-ink"
@@ -260,6 +281,7 @@ export function ProgramEditor({ programId }: { programId: string }) {
             params={{ id: entry.exerciseId }}
             search={{ from: programId }}
             data-testid="entry-preview"
+            {...{ [FLIP_THUMB]: entry.exerciseId }}
             aria-label={t("entry.preview").replace("{name}", entry.name)}
             className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-row bg-canvas transition-shadow duration-200 ease-out hover:shadow-card-hover"
           >
@@ -314,7 +336,10 @@ export function ProgramEditor({ programId }: { programId: string }) {
             data-testid="duplicate-entry"
             aria-label={t("entry.duplicate").replace("{name}", entry.name)}
             disabled={duplicateEntry.isPending}
-            onClick={() => duplicateEntry.mutate(entry)}
+            onClick={() => {
+              captureLayout();
+              duplicateEntry.mutate(entry);
+            }}
           >
             <CopyIcon />
           </button>
@@ -324,7 +349,10 @@ export function ProgramEditor({ programId }: { programId: string }) {
                 type="button"
                 className={`${pill} border-error text-error`}
                 data-testid="confirm-remove-entry"
-                onClick={() => removeEntry.mutate(entry.id)}
+                onClick={() => {
+                  captureLayout();
+                  removeEntry.mutate(entry.id);
+                }}
               >
                 {t("entry.remove.confirm")}
               </button>
@@ -434,7 +462,9 @@ export function ProgramEditor({ programId }: { programId: string }) {
               <p className="mt-1 text-sm text-muted">{t("entries.emptyHint")}</p>
             </div>
           ) : (
-            <ul className="mt-6 flex flex-col gap-2">{entries.map(entryRow)}</ul>
+            <ul ref={listRef} className="mt-6 flex flex-col gap-2">
+              {entries.map(entryRow)}
+            </ul>
           )}
 
           {!pickerOpen && (
@@ -457,14 +487,22 @@ export function ProgramEditor({ programId }: { programId: string }) {
               )}
               <ExercisePicker
                 addedIds={new Set(entries.map((entry) => entry.exerciseId))}
-                onPick={(exercise) =>
+                onPick={(exercise) => {
+                  /*
+                   * Recorded from the card under the finger, before anything
+                   * moves. Deliberately without captureLayout(): the flight is
+                   * this row's entrance, and staging it twice would have the
+                   * thumbnail fly in while the row it lands in fades up
+                   * underneath it.
+                   */
+                  captureThumbFlight(exercise.id);
                   add.mutate({
                     id: exercise.id,
                     name: exercise.name,
                     equipment: exercise.equipment,
                     bodyPart: exercise.bodyPart,
-                  })
-                }
+                  });
+                }}
                 onClose={() => setPickerOpen(false)}
               />
             </>

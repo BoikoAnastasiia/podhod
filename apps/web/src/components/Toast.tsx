@@ -151,7 +151,7 @@ export function ToastProvider({
             type="button"
             data-testid="toast"
             onClick={() => dismiss(toast.id)}
-            className="pointer-events-auto max-w-md rounded-full border border-border bg-ink px-5 py-3 text-sm font-medium text-canvas shadow-card-hover"
+            className="animate-toast-in pointer-events-auto max-w-md rounded-full border border-border bg-ink px-5 py-3 text-sm font-medium text-canvas shadow-card-hover"
           >
             {toast.message}
           </button>

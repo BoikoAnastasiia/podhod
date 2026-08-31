@@ -107,3 +107,98 @@ test("thumbnail media stays within the 180px licence cap on a wide viewport", as
   expect(Math.round(box!.width)).toBeLessThanOrEqual(180);
   expect(Math.round(box!.height)).toBeLessThanOrEqual(180);
 });
+
+/**
+ * The detour into an exercise and back is the library's most ordinary
+ * gesture, and it used to throw the browse away: the filter chip and the
+ * search box lived in component state, so unmounting the route on the way to
+ * `/library/$id` destroyed both. Coming back remounted them empty, which also
+ * changed the query key underneath the infinite list — so the second page the
+ * owner had paged down to was gone too, and she was looking at page one of an
+ * unfiltered library.
+ *
+ * The filter belongs in the URL for the reason `$id`'s `?from=` gives: it has
+ * to survive a reload and a shared link, not only a history entry. Keeping it
+ * there fixes the pages as a consequence — the query key comes back identical,
+ * so React Query hands back every page it already holds.
+ *
+ * The place in the list is the third part of "where I was", and it needs the
+ * router's `scrollRestoration` — without it every arrival, pop included, is
+ * scrolled to the top, which on a grid paged sixty cards deep leaves the card
+ * she was just reading far below the fold.
+ */
+test("returning from an exercise keeps the filter and the pages already loaded", async ({
+  page,
+}) => {
+  await page.goto("/library");
+  const cards = page.getByTestId("exercise-card");
+  await expect(cards.first()).toBeVisible();
+
+  const chip = page.getByRole("button", { name: "chest" });
+  await chip.click();
+  await expect(cards.first()).toContainText(/chest/i);
+  // The filter is in the location, not only in the component.
+  expect(page.url()).toContain("bodyPart=chest");
+
+  await page.getByRole("button", { name: "Load more" }).click();
+  const firstPage = 30;
+  await expect.poll(() => cards.count(), { timeout: 5000 }).toBeGreaterThan(firstPage);
+  const paged = await cards.count();
+
+  // The last card of the second page — one only reachable by paging, so its
+  // presence afterwards proves the depth came back and not just the filter.
+  const lastHref = await cards.nth(paged - 1).getAttribute("href");
+  // Down to the bottom, where the second page actually is. The last card is
+  // the one opened deliberately: anything higher would be scrolled into view
+  // before the click, and the position restored afterwards would be that
+  // scroll rather than the one this test means to check.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const scrolledTo = await page.evaluate(() => window.scrollY);
+  expect(scrolledTo).toBeGreaterThan(0);
+
+  await cards.nth(paged - 1).click();
+  await expect(page.getByTestId("exercise-gif")).toBeVisible();
+
+  await page.goBack();
+
+  await expect(chip).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => cards.count(), { timeout: 5000 }).toBe(paged);
+  await expect(cards.nth(paged - 1)).toHaveAttribute("href", lastHref!);
+  await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 5000 }).toBe(
+    scrolledTo,
+  );
+});
+
+/**
+ * A browse is a link, so it also has to survive being typed badly.
+ *
+ * `bodyPart` is checked against the ten real taxonomy values because an
+ * invented one reaches the API happily and comes back empty — "nothing matches
+ * those filters" with no chip lit to explain it, and no way out but editing the
+ * URL by hand. The check is easy to write and not work: the router merges the
+ * validator's result onto the parsed search instead of replacing it, so a
+ * rejected key has to be returned as `undefined` rather than left out. Left
+ * out, the URL's own value simply survives and the guard does nothing — which
+ * is exactly what the first version of it did.
+ */
+test("a made-up body part in the URL is ignored rather than filtering to nothing", async ({
+  page,
+}) => {
+  await page.goto("/library?bodyPart=elbows");
+  await expect(page.getByTestId("exercise-card").first()).toBeVisible();
+});
+
+/** And the other end of it: an emptied browse leaves no debris in the URL. */
+test("clearing the filter leaves a clean library URL", async ({ page }) => {
+  await page.goto("/library");
+  await expect(page.getByTestId("exercise-card").first()).toBeVisible();
+
+  const chip = page.getByRole("button", { name: "chest" });
+  await chip.click();
+  await expect(chip).toHaveAttribute("aria-pressed", "true");
+  await chip.click();
+  await expect(chip).toHaveAttribute("aria-pressed", "false");
+
+  await expect(page.getByTestId("exercise-card").first()).toBeVisible();
+  expect(new URL(page.url()).search).toBe("");
+});

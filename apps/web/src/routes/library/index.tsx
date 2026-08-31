@@ -1,6 +1,5 @@
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ExerciseCard } from "../../components/ExerciseCard.js";
 import { FilterChips } from "../../components/FilterChips.js";
 import { useI18n } from "../../i18n/useI18n.js";
@@ -42,14 +41,68 @@ function LoadingGrid({ label }: { label: string }) {
   );
 }
 
+/** What the location carries about a browse. Both parts are optional. */
+type LibrarySearch = { q?: string; bodyPart?: string };
+
 export const Route = createFileRoute("/library/")({
+  /**
+   * The search term and the body-part chip live in the URL, not in component
+   * state.
+   *
+   * They used to be `useState`, and opening an exercise threw them away:
+   * `/library/$id` is a different route, so React unmounts this one on the way
+   * out and remounts it empty on the way back. The owner would filter to
+   * «Грудь», page down, open something, press Back — and land on page one of
+   * the unfiltered library.
+   *
+   * Restoring the pages falls out of restoring the filter: the infinite
+   * query's key is built from `q` and `bodyPart`, so bringing them back
+   * identical makes React Query hand over every page it already holds instead
+   * of starting a new query at the first cursor.
+   *
+   * The URL rather than session history, for the reason `$id`'s `?from=`
+   * gives: a browse worth keeping is also worth reloading, bookmarking and
+   * sending to someone.
+   *
+   * Both values are re-validated on the way in, because anyone can type a URL:
+   * `q` is capped at the 100 characters the API accepts, and `bodyPart` has to
+   * be one of the ten real taxonomy values or it is dropped — `?bodyPart=elbows`
+   * would otherwise reach the API and render as "nothing matches those filters"
+   * with no chip lit to explain why, and no way back except editing the URL.
+   *
+   * Rejection has to be spelled `undefined`, not an omitted key. The router
+   * merges this result *onto* the raw parsed search rather than replacing it
+   * (`Object.assign` in router-core), so a key this function leaves out keeps
+   * whatever the URL said — returning `{}` for a bad value rejects nothing at
+   * all. Writing `undefined` overwrites it, and the router drops undefined
+   * values when it serialises the URL again, so a clean browse stays a clean
+   * `/library`.
+   */
+  validateSearch: (search: Record<string, unknown>): LibrarySearch => {
+    const q = typeof search.q === "string" ? search.q.slice(0, 100) : "";
+    const bodyPart = typeof search.bodyPart === "string" ? search.bodyPart : "";
+    return {
+      q: q || undefined,
+      bodyPart: BODY_PARTS.includes(bodyPart) ? bodyPart : undefined,
+    };
+  },
   component: Library,
 });
 
 function Library() {
   const { lang, term, t } = useI18n();
-  const [q, setQ] = useState("");
-  const [bodyPart, setBodyPart] = useState<string | undefined>();
+  const { q = "", bodyPart } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+
+  /*
+   * `replace` throughout: typing six letters into the search box must not bury
+   * the page the owner came from under six history entries she has to press
+   * Back through. The browse is a property of where she is, not a place of its
+   * own — so the entry is rewritten in place, and Back still means "leave the
+   * library", while returning to it from an exercise restores exactly the
+   * browse she left.
+   */
+  const setSearch = (next: LibrarySearch) => void navigate({ search: next, replace: true });
 
   // The query key carries q and bodyPart, so changing either starts a fresh
   // paginated query rather than appending to the previous filter's pages.
@@ -97,7 +150,7 @@ function Library() {
         <input
           type="search"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => setSearch({ q: e.target.value, bodyPart })}
           placeholder={t("library.search")}
           aria-label={t("library.search")}
           className="min-h-tap-min w-full rounded-full border-2 border-border bg-surface pl-10 pr-5 text-ink shadow-search transition-colors duration-150 placeholder:text-muted"
@@ -106,7 +159,7 @@ function Library() {
       <FilterChips
         options={BODY_PARTS}
         selected={bodyPart}
-        onSelect={setBodyPart}
+        onSelect={(next) => setSearch({ q, bodyPart: next })}
         label={term}
       />
       {isPending ? (

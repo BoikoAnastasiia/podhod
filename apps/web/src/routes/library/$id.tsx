@@ -1,7 +1,7 @@
 import { useGSAP } from "@gsap/react";
-import { ATTRIBUTION, mediaUrl } from "@podhod/core";
+import { mediaUrl } from "@podhod/core";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { useRef } from "react";
@@ -33,6 +33,7 @@ function Detail() {
   const { id } = Route.useParams();
   const { from } = Route.useSearch();
   const navigate = useNavigate();
+  const router = useRouter();
   const { lang, term, t } = useI18n();
 
   /*
@@ -46,6 +47,23 @@ function Detail() {
     window.matchMedia(DESKTOP).matches
       ? void navigate({ to: "/programs", search: { program: from } })
       : void navigate({ to: "/programs/$programId", params: { programId: from ?? "" } });
+
+  /**
+   * Back to the library, by popping history rather than linking to it.
+   *
+   * The library's browse — the chip, the search term, every page loaded and
+   * the place in the grid — is restored by the *pop*, not by the destination:
+   * a fresh navigation to `/library` is a clean library, and a link carrying
+   * the filter would still land at the top of the list. Only going back the
+   * way she came puts her where she was.
+   *
+   * `canGoBack()` is what makes that safe. It is false exactly when there is
+   * nothing of ours behind this page — a shared link, a new tab, a reload —
+   * and then the plain library is the honest answer rather than a button that
+   * throws her out of the app entirely.
+   */
+  const backToLibrary = () =>
+    router.history.canGoBack() ? router.history.back() : void navigate({ to: "/library" });
   const root = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLImageElement>(null);
 
@@ -92,24 +110,33 @@ function Detail() {
     { scope: root, dependencies: [data] },
   );
 
-  // No dedicated back button to the *library*: the header's Library link is
-  // always one glance away, and the browser's own Back covers that gesture.
-  // Returning to a program is different — see `from` on the route above.
-  const backLink = from ? (
+  /*
+   * One back control, and which room it returns to depends on which room she
+   * left: a program, when `from` says so, and otherwise the library.
+   *
+   * The page carried neither for a while — the argument being that the header's
+   * Library link and the browser's own Back both covered it. Neither quite
+   * did. The header link is a fresh library, so it drops the browse the way
+   * the old useState bug used to; and on a phone the browser's control is a
+   * gesture or a chrome button, not something the page itself offers. On every
+   * viewport, the way back out of a detour should be visible in the detour.
+   */
+  const backLink = (
     <button
       type="button"
-      data-testid="back-to-program"
-      onClick={backToProgram}
+      data-testid={from ? "back-to-program" : "back-to-library"}
+      onClick={from ? backToProgram : backToLibrary}
       className="flex min-h-tap-min w-max items-center gap-2 text-sm text-muted underline-offset-4 hover:text-ink hover:underline"
     >
       <ChevronLeftIcon />
-      {t("library.backToProgram")}
+      {from ? t("library.backToProgram") : t("library.backToLibrary")}
     </button>
-  ) : null;
+  );
 
   if (isError) {
     return (
       <div className="flex flex-col gap-4 py-8">
+        {backLink}
         <div className="flex flex-col items-start gap-3">
           {/* The one place accent-red belongs today: the error state. */}
           <p className="text-error">{t("library.error")}</p>
@@ -128,6 +155,7 @@ function Detail() {
   if (!data) {
     return (
       <div className="flex flex-col gap-4 py-8">
+        {backLink}
         <p className="text-muted">{t("library.loading")}</p>
       </div>
     );
@@ -196,10 +224,6 @@ function Detail() {
               </div>
             )}
           </div>
-
-          <p data-testid="attribution" className="text-xs text-muted">
-            {ATTRIBUTION}
-          </p>
         </div>
 
         {/*
